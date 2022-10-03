@@ -25,7 +25,7 @@ ARTIFACTS_DIR ?= ./artifacts
 TANZU_PLUGIN_PUBLISH_PATH ?= $(ARTIFACTS_DIR)/published
 
 # Add list of plugins separated by space
-PLUGINS ?= ""
+PLUGINS ?= "jumpbox"
 
 # Add supported OS-ARCHITECTURE combinations here
 ENVS ?= linux-amd64 windows-amd64 darwin-amd64
