@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/pkg/errors"
 	"github.com/vmware-tanzu/vm-operator-api/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,11 +32,11 @@ func init() {
 	}
 }
 
-func createJumpBox(options VMOptions) error {
+func createJumpBox(ctx context.Context, options *VMOptions) error {
 	return nil
 }
 
-func createPVC(ctx context.Context, options VMOptions) error {
+func createPVC(ctx context.Context, options *VMOptions) error {
 	filesystem := corev1.PersistentVolumeFilesystem
 
 	pvc := corev1.PersistentVolumeClaim{
@@ -61,7 +60,7 @@ func createPVC(ctx context.Context, options VMOptions) error {
 	return nil
 }
 
-func createVM(ctx context.Context, options VMOptions) error {
+func createVM(ctx context.Context, options *VMOptions) error {
 	vm := v1alpha1.VirtualMachine{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "VirtualMachine",
@@ -126,12 +125,6 @@ func createVM(ctx context.Context, options VMOptions) error {
 }
 
 func powerOnVM(ctx context.Context, vmName string) error {
-	vm, err := dynamicClient.Resource(gvr).Namespace("vms").Get(ctx, vmName, v1.GetOptions{})
-	if err != nil {
-		return errors.Wrap(err, "error getting vms")
-	}
-
-	fmt.Printf("vm: %+v\n", vm.Object["spec"].(map[string]interface{})["powerState"])
 	patch := []interface{}{
 		map[string]interface{}{
 			"op":    "replace",

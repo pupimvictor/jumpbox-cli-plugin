@@ -16,6 +16,9 @@ import (
 var (
 	c             kubernetes.Interface
 	dynamicClient dynamic.Interface
+
+	createCmd    *cobra.Command
+	powerOnVMCmd *cobra.Command
 )
 
 func init() {
@@ -54,7 +57,8 @@ func main() {
 	}
 
 	p.AddCommands(
-		powerOnVMCmd(ctx),
+		newPowerOnVMCmd(ctx),
+		newCreateCmd(ctx),
 		// Add commands.go
 	)
 	if err := p.Execute(); err != nil {
@@ -62,22 +66,25 @@ func main() {
 	}
 }
 
-func powerOnVMCmd(ctx context.Context) *cobra.Command {
-	return &cobra.Command{
+func newPowerOnVMCmd(ctx context.Context) *cobra.Command {
+	powerOnVMCmd = &cobra.Command{
 		Use:   "power-on",
 		Short: "Power On VM",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			powerOnVM(ctx, args[0])
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return powerOnVM(ctx, args[0])
 		}}
+	return powerOnVMCmd
 }
 
-var createCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create Jumpbox",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return nil
-	},
+func newCreateCmd(ctx context.Context) *cobra.Command {
+	createCmd = &cobra.Command{
+		Use:   "create",
+		Short: "Create Jumpbox",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return createJumpBox(ctx, parseArgs(args))
+		}}
+	return createCmd
 }
 
 func parseArgs(args []string) *VMOptions {

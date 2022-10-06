@@ -11,8 +11,10 @@ import (
 )
 
 func Test_createJumpBox(t *testing.T) {
+	ctx := context.Background()
+
 	type args struct {
-		options VMOptions
+		options *VMOptions
 	}
 	tests := []struct {
 		name    string
@@ -23,7 +25,7 @@ func Test_createJumpBox(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := createJumpBox(tt.args.options); (err != nil) != tt.wantErr {
+			if err := createJumpBox(ctx, tt.args.options); (err != nil) != tt.wantErr {
 				t.Errorf("createJumpBox() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -33,7 +35,7 @@ func Test_createJumpBox(t *testing.T) {
 func Test_createPVC(t *testing.T) {
 	type args struct {
 		ctx     context.Context
-		options VMOptions
+		options *VMOptions
 	}
 	tests := []struct {
 		name    string
@@ -44,7 +46,7 @@ func Test_createPVC(t *testing.T) {
 			name: "pvc-1",
 			args: args{
 				ctx: context.Background(),
-				options: VMOptions{
+				options: &VMOptions{
 					Name:             "test-1",
 					Namespace:        "test",
 					UserData:         "",
@@ -106,7 +108,7 @@ func Test_createVM(t *testing.T) {
 	dynamicClient = fake.NewSimpleDynamicClient(scheme, &v1alpha1.VirtualMachine{})
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := createVM(tt.args.ctx, tt.args.options); (err != nil) != tt.wantErr {
+			if err := createVM(tt.args.ctx, &tt.args.options); (err != nil) != tt.wantErr {
 				t.Errorf("createVM() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -144,7 +146,7 @@ func Test_powerOnVM(t *testing.T) {
 	install.Install(scheme)
 	dynamicClient = fake.NewSimpleDynamicClient(scheme, &v1alpha1.VirtualMachine{})
 
-	createVM(ctx, VMOptions{
+	createVM(ctx, &VMOptions{
 		Name:             "jumpbox-1",
 		Namespace:        "test",
 		UserData:         "test",
