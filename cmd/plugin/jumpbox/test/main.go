@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -41,22 +42,22 @@ func test(c *cobra.Command, _ []string) error {
 
 	// example test
 
-	// testName := clitest.GenerateName()
-	//
-	// err := m.RunTest(
-	// 	"create a jumpbox",
-	// 	fmt.Sprintf("jumpbox create -n %s", testName),
-	// 	func(t *clitest.Test) error {
-	// 		err := t.ExecContainsString("created")
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 		return nil
-	// 	},
-	// )
-	// if err != nil {
-	// 	return err
-	// }
+	testName := clitest.GenerateName()
+
+	err := m.RunTest(
+		"create a jumpbox",
+		fmt.Sprintf("jumpbox create -n %s", testName),
+		func(t *clitest.Test) error {
+			err := t.ExecContainsString("created")
+			if err != nil {
+				return err
+			}
+			return nil
+		},
+	)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
