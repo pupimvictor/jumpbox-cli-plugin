@@ -1,4 +1,4 @@
-# github.com/pupimvictor/jumpbox-cli-plugin
+# Tanzu Jumpbox CLI Plugin
 
 Welcome, lets get started with your new Tanzu plugin repository.
 
