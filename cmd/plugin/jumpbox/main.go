@@ -17,8 +17,8 @@ var (
 	c             kubernetes.Interface
 	dynamicClient dynamic.Interface
 
-	createCmd    *cobra.Command
-	powerOnVMCmd *cobra.Command
+	createCmd  *cobra.Command
+	powerOnCmd *cobra.Command
 )
 
 func init() {
@@ -57,8 +57,9 @@ func main() {
 	}
 
 	p.AddCommands(
-		newPowerOnVMCmd(ctx),
+		newPowerOnCmd(ctx),
 		newCreateCmd(ctx),
+		newSshCmd(ctx),
 		// Add commands.go
 	)
 	if err := p.Execute(); err != nil {
@@ -66,15 +67,15 @@ func main() {
 	}
 }
 
-func newPowerOnVMCmd(ctx context.Context) *cobra.Command {
-	powerOnVMCmd = &cobra.Command{
+func newPowerOnCmd(ctx context.Context) *cobra.Command {
+	powerOnCmd = &cobra.Command{
 		Use:   "power-on",
 		Short: "Power On VM",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return powerOnVM(ctx, args[0])
+			return powerOn(ctx, args[0])
 		}}
-	return powerOnVMCmd
+	return powerOnCmd
 }
 
 func newCreateCmd(ctx context.Context) *cobra.Command {
@@ -87,6 +88,32 @@ func newCreateCmd(ctx context.Context) *cobra.Command {
 	return createCmd
 }
 
+func newSshCmd(ctx context.Context) *cobra.Command {
+	createCmd = &cobra.Command{
+		Use:   "ssh",
+		Short: "ssh Jumpbox",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return sshJumpbox(ctx, parseSshArgs(args))
+		}}
+	return createCmd
+}
+
 func parseArgs(args []string) *VMOptions {
-	return nil
+	vmOptions := &VMOptions{
+		Name:             "jumpbox-test",
+		Namespace:        "vms",
+		StorageClassName: "vc01cl01-t0compute",
+	}
+	vmOptions.PVCName = vmOptions.Name + "-pvc"
+	vmOptions.ConfigName = vmOptions.Name + "-cm"
+	return vmOptions
+
+}
+
+func parseSshArgs(args []string) *sshOptions {
+	return &sshOptions{
+		vmName:     "jumpbox-test",
+		namespace:  "vms",
+		sshKeyPath: "/Users/vpupim/.ssh/id_rsa",
+	}
 }

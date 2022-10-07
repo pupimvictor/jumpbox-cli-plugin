@@ -155,8 +155,8 @@ func Test_powerOnVM(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := powerOnVM(tt.args.ctx, tt.args.vmName); (err != nil) != tt.wantErr {
-				t.Errorf("powerOnVM() error = %v, wantErr %v", err, tt.wantErr)
+			if err := powerOn(tt.args.ctx, tt.args.vmName); (err != nil) != tt.wantErr {
+				t.Errorf("powerOn() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
