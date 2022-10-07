@@ -34,14 +34,21 @@ type (
 	}
 )
 
-var gvr schema.GroupVersionResource
+var gvrVM schema.GroupVersionResource
+var gvrSvc schema.GroupVersionResource
 
 func init() {
-	gvr = schema.GroupVersionResource{
+	gvrVM = schema.GroupVersionResource{
 		Group:    "vmoperator.vmware.com",
 		Version:  "v1alpha1",
 		Resource: "virtualmachines",
 	}
+	gvrSvc = schema.GroupVersionResource{
+		Group:    "vmoperator.vmware.com",
+		Version:  "v1alpha1",
+		Resource: "virtualmachineservices",
+	}
+
 }
 
 func createJumpBox(ctx context.Context, options *VMOptions) error {
@@ -107,12 +114,7 @@ func createSvc(ctx context.Context, options *VMOptions) error {
 	}
 
 	dataUnstructured := &unstructured.Unstructured{Object: vmData}
-	_, err = dynamicClient.Resource(
-		schema.GroupVersionResource{
-			Group:    "vmoperator.vmware.com",
-			Version:  "v1alpha1",
-			Resource: "virtualmachineservices",
-		}).Namespace(options.Namespace).Create(ctx, dataUnstructured, v1.CreateOptions{
+	_, err = dynamicClient.Resource(gvrSvc).Namespace(options.Namespace).Create(ctx, dataUnstructured, v1.CreateOptions{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "VirtualMachineService",
 			APIVersion: "v1alpha1",
@@ -191,7 +193,7 @@ func createVM(ctx context.Context, options *VMOptions) error {
 		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      options.Name,
-			Namespace: "vms",
+			Namespace: options.Namespace,
 			Labels: map[string]string{
 				"jumpbox": options.Name,
 			},
@@ -237,7 +239,7 @@ func createVM(ctx context.Context, options *VMOptions) error {
 	}
 
 	dataUnstructured := &unstructured.Unstructured{Object: vmData}
-	_, err = dynamicClient.Resource(gvr).Namespace(options.Namespace).Create(ctx, dataUnstructured, v1.CreateOptions{
+	_, err = dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Create(ctx, dataUnstructured, v1.CreateOptions{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "VirtualMachine",
 			APIVersion: "v1alpha1",
@@ -254,7 +256,7 @@ func createVM(ctx context.Context, options *VMOptions) error {
 	return nil
 }
 
-func powerOn(ctx context.Context, vmName string) error {
+func powerOn(ctx context.Context, options *VMOptions) error {
 	patch := []interface{}{
 		map[string]interface{}{
 			"op":    "replace",
@@ -266,7 +268,7 @@ func powerOn(ctx context.Context, vmName string) error {
 	if err != nil {
 		return errors.Wrap(err, "err marshaling")
 	}
-	_, err = dynamicClient.Resource(gvr).Namespace("vms").Patch(ctx, vmName, types.JSONPatchType, payload, v1.PatchOptions{})
+	_, err = dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Patch(ctx, options.Name, types.JSONPatchType, payload, v1.PatchOptions{})
 	if err != nil {
 		return errors.Wrap(err, "err patching")
 	}
@@ -289,7 +291,7 @@ func sshJumpbox(ctx context.Context, options *sshOptions) error {
 	cmd.Stdin = os.Stdin
 	err = cmd.Run()
 	if err != nil {
-		fmt.Printf("err %+v\n", err)
+		return errors.Wrap(err, "error ssh into vm")
 	}
 	return nil
 }

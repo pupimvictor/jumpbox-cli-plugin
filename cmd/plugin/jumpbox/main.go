@@ -73,7 +73,7 @@ func newPowerOnCmd(ctx context.Context) *cobra.Command {
 		Short: "Power On VM",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return powerOn(ctx, args[0])
+			return powerOn(ctx, parseArgs(args))
 		}}
 	return powerOnCmd
 }
