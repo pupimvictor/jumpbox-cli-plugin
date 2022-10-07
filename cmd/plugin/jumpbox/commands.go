@@ -23,32 +23,36 @@ type (
 		Name             string `json:"name,omitempty"`
 		Namespace        string `json:"namespace,omitempty"`
 		UserData         string `json:"userData,omitempty"`
-		PVCName          string `json:"pvcName"`
-		ConfigName       string `json:"configName"`
+		pvcName          string `json:"pvcName"`
+		configName       string `json:"configName"`
+		svcName          string `json:"svcName"`
 		StorageClassName string `json:"storageClassName"`
-	}
-	sshOptions struct {
-		vmName     string
-		namespace  string
-		sshKeyPath string
+		ImageName        string `json:"imageName"`
+		ClassName        string `json:"className"`
+		NetworkType      string `json:"networkType"`
+		NetworkName      string `json:"networkName"`
+		SshPubPath       string `json:"sshPubPath"`
+		SshKeyPath       string `json:"sshKeyPath"`
+		User             string `json:"user"`
+		Password         string `json:"password"`
 	}
 )
 
-var gvrVM schema.GroupVersionResource
-var gvrSvc schema.GroupVersionResource
-
-func init() {
+var (
 	gvrVM = schema.GroupVersionResource{
 		Group:    "vmoperator.vmware.com",
 		Version:  "v1alpha1",
 		Resource: "virtualmachines",
 	}
+
 	gvrSvc = schema.GroupVersionResource{
 		Group:    "vmoperator.vmware.com",
 		Version:  "v1alpha1",
 		Resource: "virtualmachineservices",
 	}
+)
 
+func init() {
 }
 
 func createJumpBox(ctx context.Context, options *VMOptions) error {
@@ -96,7 +100,7 @@ func createSvc(ctx context.Context, options *VMOptions) error {
 			APIVersion: "vmoperator.vmware.com/v1alpha1",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name:      options.Name + "-svc",
+			Name:      options.svcName,
 			Namespace: options.Namespace,
 		},
 		Spec: v1alpha1.VirtualMachineServiceSpec{
@@ -142,7 +146,7 @@ func createPVC(ctx context.Context, options *VMOptions) error {
 
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      options.PVCName,
+			Name:      options.pvcName,
 			Namespace: options.Namespace,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
@@ -167,11 +171,11 @@ func createPVC(ctx context.Context, options *VMOptions) error {
 func createConfigMap(ctx context.Context, options *VMOptions) error {
 	cm := corev1.ConfigMap{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      options.ConfigName,
+			Name:      options.configName,
 			Namespace: options.Namespace,
 		},
 		Data: map[string]string{
-			"user-data": "I2Nsb3VkLWNvbmZpZwojIyBSZXF1aXJlZCBzeW50YXggYXQgdGhlIHN0YXJ0IG9mIHVzZXItZGF0YSBmaWxlCnVzZXJzOgojIyBDcmVhdGUgdGhlIGRlZmF1bHQgdXNlciBmb3IgdGhlIE9TCiAgLSBkZWZhdWx0CgogIC0gbmFtZTogdnAKICAgIGdlY29zOiB2aWN0b3IgcHVwaW0KICAgIHN1ZG86IEFMTD0oQUxMKSBOT1BBU1NXRDpBTEwKICAgIGdyb3VwczogdXNlcnMsIGFkbWlucwogICAgbG9ja19wYXNzd2Q6IGZhbHNlCiAgICBzaGVsbDogL2Jpbi9iYXNoCiAgICBwYXNzd2Q6IDczYjQwOTJjZjI4N2RhYmNhNTI5ZTdlZGExNmE0NGU4Yzk4MWVjNDM1NTVkMjUxOTE2YmNmZmJlZmE1OThlZmUKICAgIHNzaF9hdXRob3JpemVkX2tleXM6CiAgICAgIC0gc3NoLXJzYSBBQUFBQjNOemFDMXljMkVBQUFBREFRQUJBQUFDQVFDcHA4UVRMNDF5bVA4dmRmVFdPblE3eXhaek5FY1U5TWlWaEg2S3B6WWhzdkRsRjdSKzVrMTRycVNqajBlRlBrM2VWWGV5L0dTS2FNUjBCL29SMlhjdjk2Y1RuczNzMnZGa29rWUppeldiZEphU1gwVXEvcUVaUjFmVFdrcm9vTEN0c1JoS1hYQUtkaitKOTk5a3pNQ28xaE4wODF4SHlQdXB5YXErWjJVdDZKc0FWdElUSHE4aiswZzNTUndQQzlRVDJtVUJ6L3Q4TTh1THpRYWh6NlZ2UUs4ZGJEWkpCaU42TXdRME9PdVZrNFRxZnFldkV6SDFta2lZRVlLTGdrVU8vd0FGQmZjZUZ3K0NwSWUwUnZBaHdib25oVjg1TE5yRWczMU1FQ055Nm0xM1MxTVY2bUVFcHhqUHNEVjJEQVFqTi93dDV4M1VYenpQNGlLS2V3ZXhueCtWMklTQWxYTE96b3BPSTJLdTUwWGtiSFFGRUFNM3dHNlFKcWRCelFWUTA0dGRJdmpTdTNWdHVNcjhmYVVvT1ZKV0V1aXAxc2Mvc1ptNTlPd0JBMWxEbitvYjlIK2R0VUw4QlFkVDlTNFd2ZEhSbkpHclp6TXBBTEZKRGtJNUhCTnNGcGFpWmNId1RaWEk2RzR2aVpKVWFHVWNhRWl0eE9rV0QxZVV2TzZYRjFSdktNTk04a2Y3bmRQZzhaeXRMQi9tdllKcGErU0VyT1cwUXcxcDJNWlBIUXhtZnE5ODdiNVhKMk1WNGtjSXRTQmxXRHo4ZkJObjRaMUpXZ0V5d0hUNjJmOUt1RHR4cnkvYS8yNS82ZjM0VHVXQmp4RFBVUDhscThaRStrSU4ySjFRaTA1QVNBc2R3WWZ3YW1vTm9ZNHlqaGY5REVoTmVmY20zaEdsaHc9PSBwdXBpbXZpY3RvckBnbWFpbC5jb20KICAgICAgCiAgICAKIyMgRW5hYmxlIERIQ1Agb24gdGhlIGRlZmF1bHQgbmV0d29yayBpbnRlcmZhY2UgcHJvdmlzaW9uZWQgaW4gdGhlIFZNCm5ldHdvcms6CiAgdmVyc2lvbjogMgogIGV0aGVybmV0czoKICAgICAgZW5zMTkyOgogICAgICAgICAgZGhjcDQ6IHRydWUKCiMjIFNldHVwIEZpbGVzeXN0ZW0gYW5kIE1vdW50IFBWIGRpc2sKZnNfc2V0dXA6CiAgLSBsYWJlbDogd29ya3NwYWNlCiAgICBmaWxlc3lzdGVtOiAnZXh0NCcKICAgIGRldmljZTogJy9kZXYvc2RiJwogICAgcGFydGl0aW9uOiAnYXV0bycKCm1vdW50czoKIC0gWyBzZGIsIC93b3Jrc3BhY2UgXQoKYXB0X3VwZ3JhZGU6IHRydWUKcGFja2FnZXM6CiAgICAtIHRyYWNlcm91dGUKICAgIC0gdW56aXAKICAgIC0gdHJlZQogICAgLSBqcQoKcnVuY21kOgogIC0gY2htb2QgNzc0IC93b3Jrc3BhY2UKICAtIGNob3duIC1SIHJvb3Q6YWRtaW5zIC93b3Jrc3BhY2UKICA=",
+			"user-data": options.UserData,
 			"hostname":  options.Name,
 		},
 	}
@@ -197,22 +201,22 @@ func createVM(ctx context.Context, options *VMOptions) error {
 			},
 		},
 		Spec: v1alpha1.VirtualMachineSpec{
-			ImageName:  "ubuntu-20-1633387172196",
-			ClassName:  "best-effort-large",
-			PowerState: "poweredOff",
+			ImageName:  options.ImageName,
+			ClassName:  options.ClassName,
+			PowerState: "poweredOn",
 			VmMetadata: &v1alpha1.VirtualMachineMetadata{
-				ConfigMapName: options.ConfigName,
+				ConfigMapName: options.configName,
 				Transport:     "OvfEnv",
 			},
 			StorageClass: options.StorageClassName,
 			NetworkInterfaces: []v1alpha1.VirtualMachineNetworkInterface{{
-				NetworkType: "nsx-t",
+				NetworkType: options.NetworkType,
 			}},
 			Volumes: []v1alpha1.VirtualMachineVolume{{
 				Name: "workspace",
 				PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{
 					PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: options.PVCName,
+						ClaimName: options.pvcName,
 						ReadOnly:  false,
 					},
 				},
@@ -237,17 +241,38 @@ func createVM(ctx context.Context, options *VMOptions) error {
 	}
 
 	dataUnstructured := &unstructured.Unstructured{Object: vmData}
-	_, err = dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Create(ctx, dataUnstructured, v1.CreateOptions{
-		TypeMeta: v1.TypeMeta{
-			Kind:       "VirtualMachine",
-			APIVersion: "v1alpha1",
-		},
-	})
+	_, err = dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Create(ctx, dataUnstructured, v1.CreateOptions{})
 	if err != nil {
 		return errors.Wrap(err, "error creating vm")
 	}
 	//fmt.Printf("vm created %v\n", res)
 	return nil
+}
+
+func destroy(ctx context.Context, options *VMOptions) error {
+	err := dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Delete(ctx, options.Name, v1.DeleteOptions{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "VirtualMachine",
+			APIVersion: "vmoperator.vmware.com/v1alpha1",
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "error deleting VM")
+	}
+	err = dynamicClient.Resource(gvrSvc).Namespace(options.Namespace).Delete(ctx, options.svcName, v1.DeleteOptions{})
+	if err != nil {
+		return errors.Wrap(err, "error deleting VMService")
+	}
+	err = c.CoreV1().ConfigMaps(options.Namespace).Delete(ctx, options.configName, v1.DeleteOptions{})
+	if err != nil {
+		return errors.Wrap(err, "error deleting Config")
+	}
+	err = c.CoreV1().PersistentVolumeClaims(options.Namespace).Delete(ctx, options.pvcName, v1.DeleteOptions{})
+	if err != nil {
+		return errors.Wrap(err, "error deleting PVC")
+	}
+	return nil
+
 }
 
 func powerOn(ctx context.Context, options *VMOptions) error {
@@ -270,16 +295,35 @@ func powerOn(ctx context.Context, options *VMOptions) error {
 	return nil
 }
 
-func sshJumpbox(ctx context.Context, options *sshOptions) error {
-	svc, err := c.CoreV1().Services(options.namespace).Get(ctx, options.vmName+"-svc", v1.GetOptions{})
+func powerOff(ctx context.Context, options *VMOptions) error {
+	patch := []interface{}{
+		map[string]interface{}{
+			"op":    "replace",
+			"path":  "/spec/powerState",
+			"value": "poweredOff",
+		},
+	}
+	payload, err := json.Marshal(patch)
+	if err != nil {
+		return errors.Wrap(err, "err marshaling")
+	}
+	_, err = dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Patch(ctx, options.Name, types.JSONPatchType, payload, v1.PatchOptions{})
+	if err != nil {
+		return errors.Wrap(err, "err patching")
+	}
+	//fmt.Printf("VM Powered ON - %s\n", res.Object["metadata"].(map[string]interface{})["name"])
+	return nil
+}
 
+func sshJumpbox(ctx context.Context, options *VMOptions) error {
+	svc, err := c.CoreV1().Services(options.Namespace).Get(ctx, options.svcName, v1.GetOptions{})
 	if err != nil {
 		return errors.Wrap(err, "error getting svc")
 	}
 
 	ip := svc.Status.LoadBalancer.Ingress[0].IP
 
-	cmd := exec.Command("ssh", "-i", options.sshKeyPath, "-o", "StrictHostKeyChecking=no", "vp@"+ip)
+	cmd := exec.Command("ssh", "-i", options.SshKeyPath, "-o", "StrictHostKeyChecking=no", options.User+"@"+ip)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
