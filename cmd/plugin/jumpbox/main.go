@@ -100,7 +100,7 @@ func newSshCmd(ctx context.Context) *cobra.Command {
 
 func parseArgs(args []string) *VMOptions {
 	vmOptions := &VMOptions{
-		Name:             "jumpbox-test",
+		Name:             "jumpbox-2",
 		Namespace:        "vms",
 		StorageClassName: "vc01cl01-t0compute",
 	}

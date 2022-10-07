@@ -55,19 +55,35 @@ func createJumpBox(ctx context.Context, options *VMOptions) error {
 
 	err := createPVC(ctx, options)
 	if err != nil {
-		return errors.Wrap(err, "err creating pvc")
+		if apierrors.IsAlreadyExists(err) {
+			fmt.Printf("Skip Creating PVC. %s\n", err)
+		} else {
+			return err
+		}
 	}
 	err = createConfigMap(ctx, options)
 	if err != nil {
-		return errors.Wrap(err, "err creating CM")
+		if apierrors.IsAlreadyExists(err) {
+			fmt.Printf("Skip Creating Config. %s\n", err)
+		} else {
+			return err
+		}
 	}
 	err = createVM(ctx, options)
 	if err != nil {
-		return errors.Wrap(err, "err creating VM")
+		if apierrors.IsAlreadyExists(err) {
+			fmt.Printf("Skip Creating VMs. %s\n", err)
+		} else {
+			return err
+		}
 	}
 	err = createSvc(ctx, options)
 	if err != nil {
-		return errors.Wrap(err, "err creating service")
+		if apierrors.IsAlreadyExists(err) {
+			fmt.Printf("Skip Creating Service. %s\n", err)
+		} else {
+			return err
+		}
 	}
 
 	return nil
@@ -108,24 +124,15 @@ func createSvc(ctx context.Context, options *VMOptions) error {
 		return errors.Wrap(err, "err unmarshal to map")
 	}
 
-	vmData, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&svcMap)
+	svcData, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&svcMap)
 	if err != nil {
 		return errors.WithMessage(err, "err converting to unstructured")
 	}
 
-	dataUnstructured := &unstructured.Unstructured{Object: vmData}
-	_, err = dynamicClient.Resource(gvrSvc).Namespace(options.Namespace).Create(ctx, dataUnstructured, v1.CreateOptions{
-		TypeMeta: v1.TypeMeta{
-			Kind:       "VirtualMachineService",
-			APIVersion: "v1alpha1",
-		},
-	})
+	dataUnstructured := &unstructured.Unstructured{Object: svcData}
+	_, err = dynamicClient.Resource(gvrSvc).Namespace(options.Namespace).Create(ctx, dataUnstructured, v1.CreateOptions{})
 	if err != nil {
-		if apierrors.IsAlreadyExists(err) {
-			fmt.Printf("Skip Creating Service. %s\n", err)
-		} else {
-			return errors.Wrap(err, "err creating service")
-		}
+		return errors.Wrap(err, "err creating service")
 	}
 	return nil
 }
@@ -152,12 +159,7 @@ func createPVC(ctx context.Context, options *VMOptions) error {
 
 	_, err := c.CoreV1().PersistentVolumeClaims(options.Namespace).Create(ctx, &pvc, v1.CreateOptions{})
 	if err != nil {
-		if apierrors.IsAlreadyExists(err) {
-			fmt.Printf("Skip Creating PVC. %s\n", err)
-		} else {
-			return errors.Wrap(err, "err creating pvc")
-		}
-
+		return errors.Wrap(err, "err creating pvc")
 	}
 	return nil
 }
@@ -176,11 +178,7 @@ func createConfigMap(ctx context.Context, options *VMOptions) error {
 
 	_, err := c.CoreV1().ConfigMaps(options.Namespace).Create(ctx, &cm, v1.CreateOptions{})
 	if err != nil {
-		if apierrors.IsAlreadyExists(err) {
-			fmt.Printf("Skip Creating Config. %s\n", err)
-		} else {
-			return errors.Wrap(err, "err creating cm")
-		}
+		return errors.Wrap(err, "err creating cm")
 	}
 	return nil
 }
@@ -246,11 +244,7 @@ func createVM(ctx context.Context, options *VMOptions) error {
 		},
 	})
 	if err != nil {
-		if apierrors.IsAlreadyExists(err) {
-			fmt.Printf("Skip Creating VMss. %s\n", err)
-		} else {
-			return errors.Wrap(err, "error creating vm")
-		}
+		return errors.Wrap(err, "error creating vm")
 	}
 	//fmt.Printf("vm created %v\n", res)
 	return nil
