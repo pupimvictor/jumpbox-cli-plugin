@@ -115,7 +115,7 @@ func Test_createVM(t *testing.T) {
 	}
 }
 
-func Test_powerOnVM(t *testing.T) {
+func TestPowerOn(t *testing.T) {
 	ctx := context.Background()
 	type args struct {
 		ctx    context.Context
@@ -212,26 +212,6 @@ func TestPowerOff(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := PowerOff(tt.args.ctx); (err != nil) != tt.wantErr {
 				t.Errorf("PowerOff() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestPowerOn(t *testing.T) {
-	type args struct {
-		ctx context.Context
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := PowerOn(tt.args.ctx); (err != nil) != tt.wantErr {
-				t.Errorf("PowerOn() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
