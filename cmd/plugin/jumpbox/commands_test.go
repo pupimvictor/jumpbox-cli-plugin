@@ -25,8 +25,8 @@ func Test_createJumpBox(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := createJumpBox(ctx, tt.args.options); (err != nil) != tt.wantErr {
-				t.Errorf("createJumpBox() error = %v, wantErr %v", err, tt.wantErr)
+			if err := CreateJumpBox(ctx, tt.args.options); (err != nil) != tt.wantErr {
+				t.Errorf("CreateJumpBox() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -155,8 +155,8 @@ func Test_powerOnVM(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := powerOn(tt.args.ctx, tt.args.vmName); (err != nil) != tt.wantErr {
-				t.Errorf("powerOn() error = %v, wantErr %v", err, tt.wantErr)
+			if err := PowerOn(tt.args.ctx, tt.args.vmName); (err != nil) != tt.wantErr {
+				t.Errorf("PowerOn() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

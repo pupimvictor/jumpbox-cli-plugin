@@ -84,7 +84,7 @@ func newCreateCmd(ctx context.Context) *cobra.Command {
 		Use:   "create",
 		Short: "Create Jumpbox",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return createJumpBox(ctx, parseArgs(args))
+			return CreateJumpBox(ctx, parseArgs(args))
 		}}
 
 	createCmd.Flags().StringVarP(&vmOptions.Namespace, "namespace", "n", "", "vm namespace")
@@ -111,7 +111,7 @@ func newSshCmd(ctx context.Context) *cobra.Command {
 		Use:   "ssh",
 		Short: "ssh Jumpbox",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return sshJumpbox(ctx, parseArgs(args))
+			return Ssh(ctx, parseArgs(args))
 		}}
 	sshCmd.Flags().StringVarP(&vmOptions.Namespace, "namespace", "n", "", "vm namespace")
 	sshCmd.Flags().StringVarP(&vmOptions.SshKeyPath, "ssh-key", "i", "$HOME/.ssh/id_rsaa", "Path to the ssh private key to access the vm")
@@ -125,7 +125,7 @@ func newPowerOnCmd(ctx context.Context) *cobra.Command {
 		Short: "Power On VM",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return powerOn(ctx, parseArgs(args))
+			return PowerOn(ctx, parseArgs(args))
 		}}
 	powerOnCmd.Flags().StringVarP(&vmOptions.Namespace, "namespace", "n", "", "vm namespace")
 	return powerOnCmd
@@ -136,7 +136,7 @@ func newPowerOffCmd(ctx context.Context) *cobra.Command {
 		Short: "Power Off VM",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return powerOff(ctx, parseArgs(args))
+			return PowerOff(ctx, parseArgs(args))
 		}}
 	powerOffCmd.Flags().StringVarP(&vmOptions.Namespace, "namespace", "n", "", "vm namespace")
 	return powerOffCmd
@@ -144,11 +144,11 @@ func newPowerOffCmd(ctx context.Context) *cobra.Command {
 
 func newDestroyCmd(ctx context.Context) *cobra.Command {
 	destroyCmd = &cobra.Command{
-		Use:   "destroy",
+		Use:   "Destroy",
 		Short: "Destroy VM",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return destroy(ctx, parseArgs(args))
+			return Destroy(ctx, parseArgs(args))
 		}}
 	destroyCmd.Flags().StringVarP(&vmOptions.Namespace, "namespace", "n", "", "vm namespace")
 	return destroyCmd

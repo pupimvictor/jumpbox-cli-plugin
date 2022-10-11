@@ -57,7 +57,7 @@ var (
 func init() {
 }
 
-func createJumpBox(ctx context.Context, options *VMOptions) error {
+func CreateJumpBox(ctx context.Context, options *VMOptions) error {
 
 	err := createPVC(ctx, options)
 	if err != nil {
@@ -95,7 +95,7 @@ func createJumpBox(ctx context.Context, options *VMOptions) error {
 	if options.WaitCreate {
 		return waitCreate(ctx, options)
 	}
-
+	fmt.Printf("Creating VM. run `kubectl get vm %s -n %s` for progress\n", options.Name, options.Namespace)
 	return nil
 }
 
@@ -282,7 +282,7 @@ func waitCreate(ctx context.Context, options *VMOptions) error {
 	return nil
 }
 
-func destroy(ctx context.Context, options *VMOptions) error {
+func Destroy(ctx context.Context, options *VMOptions) error {
 	err := dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Delete(ctx, options.Name, v1.DeleteOptions{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "VirtualMachine",
@@ -296,19 +296,22 @@ func destroy(ctx context.Context, options *VMOptions) error {
 	if err != nil {
 		return errors.Wrap(err, "error deleting VMService")
 	}
+	fmt.Println("VM Service deleted")
 	err = c.CoreV1().ConfigMaps(options.Namespace).Delete(ctx, options.configName, v1.DeleteOptions{})
 	if err != nil {
 		return errors.Wrap(err, "error deleting Config")
 	}
+	fmt.Println("VM Config deleted")
 	err = c.CoreV1().PersistentVolumeClaims(options.Namespace).Delete(ctx, options.pvcName, v1.DeleteOptions{})
 	if err != nil {
 		return errors.Wrap(err, "error deleting PVC")
 	}
+	fmt.Println("VM Persistent Volume deleted")
 	return nil
 
 }
 
-func powerOn(ctx context.Context, options *VMOptions) error {
+func PowerOn(ctx context.Context, options *VMOptions) error {
 	patch := []interface{}{
 		map[string]interface{}{
 			"op":    "replace",
@@ -320,15 +323,15 @@ func powerOn(ctx context.Context, options *VMOptions) error {
 	if err != nil {
 		return errors.Wrap(err, "err marshaling")
 	}
-	_, err = dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Patch(ctx, options.Name, types.JSONPatchType, payload, v1.PatchOptions{})
+	res, err := dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Patch(ctx, options.Name, types.JSONPatchType, payload, v1.PatchOptions{})
 	if err != nil {
 		return errors.Wrap(err, "err patching")
 	}
-	//fmt.Printf("VM Powered ON - %s\n", res.Object["metadata"].(map[string]interface{})["name"])
+	fmt.Printf("VM Powered ON - %s\n", res.Object["metadata"].(map[string]interface{})["name"])
 	return nil
 }
 
-func powerOff(ctx context.Context, options *VMOptions) error {
+func PowerOff(ctx context.Context, options *VMOptions) error {
 	patch := []interface{}{
 		map[string]interface{}{
 			"op":    "replace",
@@ -340,15 +343,15 @@ func powerOff(ctx context.Context, options *VMOptions) error {
 	if err != nil {
 		return errors.Wrap(err, "err marshaling")
 	}
-	_, err = dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Patch(ctx, options.Name, types.JSONPatchType, payload, v1.PatchOptions{})
+	res, err := dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Patch(ctx, options.Name, types.JSONPatchType, payload, v1.PatchOptions{})
 	if err != nil {
 		return errors.Wrap(err, "err patching")
 	}
-	//fmt.Printf("VM Powered ON - %s\n", res.Object["metadata"].(map[string]interface{})["name"])
+	fmt.Printf("VM Powered Off - %s\n", res.Object["metadata"].(map[string]interface{})["name"])
 	return nil
 }
 
-func sshJumpbox(ctx context.Context, options *VMOptions) error {
+func Ssh(ctx context.Context, options *VMOptions) error {
 	svc, err := c.CoreV1().Services(options.Namespace).Get(ctx, options.svcName, v1.GetOptions{})
 	if err != nil {
 		return errors.Wrap(err, "error getting svc")
