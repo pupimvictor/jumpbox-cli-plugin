@@ -30,7 +30,8 @@ The Jumpbox is a VM with a persistent volume and a persistent IP.
 
 ### Create Jumpbox
 
-```tanzu jumpbox create my-jumpbox  --namespace <vsphere-namespace> 
+``` 
+tanzu jumpbox create my-jumpbox  --namespace <vsphere-namespace> 
     --image <vm-image> \
     --class <vm-class> \
     --networkp-type <network-type> --network-name <network-name> \
