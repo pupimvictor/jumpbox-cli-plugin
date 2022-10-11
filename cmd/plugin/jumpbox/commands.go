@@ -19,27 +19,6 @@ import (
 	"time"
 )
 
-type (
-	VMOptions struct {
-		Name             string `json:"name,omitempty"`
-		Namespace        string `json:"namespace,omitempty"`
-		UserData         string `json:"userData,omitempty"`
-		pvcName          string `json:"pvcName"`
-		configName       string `json:"configName"`
-		svcName          string `json:"svcName"`
-		StorageClassName string `json:"storageClassName"`
-		ImageName        string `json:"imageName"`
-		ClassName        string `json:"className"`
-		NetworkType      string `json:"networkType"`
-		NetworkName      string `json:"networkName"`
-		SshPubPath       string `json:"sshPubPath"`
-		SshKeyPath       string `json:"sshKeyPath"`
-		User             string `json:"user"`
-		Password         string `json:"password"`
-		WaitCreate       bool   `json:"waitCreate"`
-	}
-)
-
 var (
 	gvrVM = schema.GroupVersionResource{
 		Group:    "vmoperator.vmware.com",
@@ -57,9 +36,9 @@ var (
 func init() {
 }
 
-func CreateJumpBox(ctx context.Context, options *VMOptions) error {
+func CreateJumpBox(ctx context.Context) error {
 
-	err := createPVC(ctx, options)
+	err := createPVC(ctx)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			fmt.Printf("Skip Creating PVC. %s\n", err)
@@ -67,7 +46,7 @@ func CreateJumpBox(ctx context.Context, options *VMOptions) error {
 			return err
 		}
 	}
-	err = createConfigMap(ctx, options)
+	err = createConfigMap(ctx)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			fmt.Printf("Skip Creating Config. %s\n", err)
@@ -75,7 +54,7 @@ func CreateJumpBox(ctx context.Context, options *VMOptions) error {
 			return err
 		}
 	}
-	err = createVM(ctx, options)
+	err = createVM(ctx)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			fmt.Printf("Skip Creating VMs. %s\n", err)
@@ -83,7 +62,7 @@ func CreateJumpBox(ctx context.Context, options *VMOptions) error {
 			return err
 		}
 	}
-	err = createSvc(ctx, options)
+	err = createSvc(ctx)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			fmt.Printf("Skip Creating Service. %s\n", err)
@@ -93,13 +72,14 @@ func CreateJumpBox(ctx context.Context, options *VMOptions) error {
 	}
 
 	if options.WaitCreate {
-		return waitCreate(ctx, options)
+		return waitCreate(ctx)
 	}
+
 	fmt.Printf("Creating VM. run `kubectl get vm %s -n %s` for progress\n", options.Name, options.Namespace)
 	return nil
 }
 
-func createSvc(ctx context.Context, options *VMOptions) error {
+func createSvc(ctx context.Context) error {
 	svc := v1alpha1.VirtualMachineService{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "VirtualMachineService",
@@ -147,7 +127,7 @@ func createSvc(ctx context.Context, options *VMOptions) error {
 	return nil
 }
 
-func createPVC(ctx context.Context, options *VMOptions) error {
+func createPVC(ctx context.Context) error {
 	filesystem := corev1.PersistentVolumeFilesystem
 
 	pvc := corev1.PersistentVolumeClaim{
@@ -174,7 +154,7 @@ func createPVC(ctx context.Context, options *VMOptions) error {
 	return nil
 }
 
-func createConfigMap(ctx context.Context, options *VMOptions) error {
+func createConfigMap(ctx context.Context) error {
 	cm := corev1.ConfigMap{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      options.configName,
@@ -193,7 +173,7 @@ func createConfigMap(ctx context.Context, options *VMOptions) error {
 	return nil
 }
 
-func createVM(ctx context.Context, options *VMOptions) error {
+func createVM(ctx context.Context) error {
 	vm := v1alpha1.VirtualMachine{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "VirtualMachine",
@@ -255,8 +235,8 @@ func createVM(ctx context.Context, options *VMOptions) error {
 	return nil
 }
 
-func waitCreate(ctx context.Context, options *VMOptions) error {
-	fmt.Print("waiting for VM to be created...")
+func waitCreate(ctx context.Context) error {
+	fmt.Print("\nwaiting for VM to be ready ")
 	for true {
 		fmt.Print(".")
 		time.Sleep(5 * time.Second)
@@ -282,13 +262,8 @@ func waitCreate(ctx context.Context, options *VMOptions) error {
 	return nil
 }
 
-func Destroy(ctx context.Context, options *VMOptions) error {
-	err := dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Delete(ctx, options.Name, v1.DeleteOptions{
-		TypeMeta: v1.TypeMeta{
-			Kind:       "VirtualMachine",
-			APIVersion: "vmoperator.vmware.com/v1alpha1",
-		},
-	})
+func Destroy(ctx context.Context) error {
+	err := dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Delete(ctx, options.Name, v1.DeleteOptions{})
 	if err != nil {
 		return errors.Wrap(err, "error deleting VM")
 	}
@@ -311,7 +286,7 @@ func Destroy(ctx context.Context, options *VMOptions) error {
 
 }
 
-func PowerOn(ctx context.Context, options *VMOptions) error {
+func PowerOn(ctx context.Context) error {
 	patch := []interface{}{
 		map[string]interface{}{
 			"op":    "replace",
@@ -331,7 +306,7 @@ func PowerOn(ctx context.Context, options *VMOptions) error {
 	return nil
 }
 
-func PowerOff(ctx context.Context, options *VMOptions) error {
+func PowerOff(ctx context.Context) error {
 	patch := []interface{}{
 		map[string]interface{}{
 			"op":    "replace",
@@ -351,7 +326,7 @@ func PowerOff(ctx context.Context, options *VMOptions) error {
 	return nil
 }
 
-func Ssh(ctx context.Context, options *VMOptions) error {
+func Ssh(ctx context.Context) error {
 	svc, err := c.CoreV1().Services(options.Namespace).Get(ctx, options.svcName, v1.GetOptions{})
 	if err != nil {
 		return errors.Wrap(err, "error getting svc")

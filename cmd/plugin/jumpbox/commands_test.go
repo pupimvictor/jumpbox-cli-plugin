@@ -59,7 +59,7 @@ func Test_createPVC(t *testing.T) {
 	c = simpleFake.NewSimpleClientset()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := createPVC(tt.args.ctx, tt.args.options); (err != nil) != tt.wantErr {
+			if err := createPVC(tt.args.ctx); (err != nil) != tt.wantErr {
 				t.Errorf("createPVC() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -108,7 +108,7 @@ func Test_createVM(t *testing.T) {
 	dynamicClient = fake.NewSimpleDynamicClient(scheme, &v1alpha1.VirtualMachine{})
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := createVM(tt.args.ctx, &tt.args.options); (err != nil) != tt.wantErr {
+			if err := createVM(tt.args.ctx); (err != nil) != tt.wantErr {
 				t.Errorf("createVM() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -146,16 +146,11 @@ func Test_powerOnVM(t *testing.T) {
 	install.Install(scheme)
 	dynamicClient = fake.NewSimpleDynamicClient(scheme, &v1alpha1.VirtualMachine{})
 
-	createVM(ctx, &VMOptions{
-		Name:             "jumpbox-1",
-		Namespace:        "test",
-		UserData:         "test",
-		StorageClassName: "test",
-	})
+	createVM(ctx)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := PowerOn(tt.args.ctx, tt.args.vmName); (err != nil) != tt.wantErr {
+			if err := PowerOn(tt.args.ctx); (err != nil) != tt.wantErr {
 				t.Errorf("PowerOn() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
