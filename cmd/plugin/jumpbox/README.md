@@ -12,9 +12,9 @@ The Jumpbox plugin enables Platform Operators and Developers to easily create an
 
 ### Local Installation
 
-git clone https://github.com/pupimvictor/jumpbox-cli-plugin.git
-cd jumpbox-cli-plugin
-make build-install-local
+- git clone https://github.com/pupimvictor/jumpbox-cli-plugin.git
+- cd jumpbox-cli-plugin
+- make build-install-local
 
 ### From remote repository
 
