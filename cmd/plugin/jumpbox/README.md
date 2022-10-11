@@ -30,7 +30,13 @@ The Jumpbox is a VM with a persistent volume and a persistent IP.
 
 ### Create Jumpbox
 
-```tanzu jumpbox create my-jumpbox  --namespace <vsphere-namespace> --image <vm-image> --class <vm-class> --networkp-type <network-type> --network-name <network-name> --ssh-pub <ssh-public-key> --storage-class <storage-class>```
+```tanzu jumpbox create my-jumpbox  --namespace <vsphere-namespace> 
+    --image <vm-image> \
+    --class <vm-class> \
+    --networkp-type <network-type> --network-name <network-name> \
+    --ssh-pub <ssh-public-key> \
+    --storage-class <storage-class>
+```
 
 - vsphere-namespace: Target Namespace
 - vm-image: VM Image from Content Library. run `kubectl get virtualmachineimages` to see available images in the namespace
