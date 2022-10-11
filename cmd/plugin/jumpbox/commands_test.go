@@ -25,7 +25,7 @@ func Test_createJumpBox(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := CreateJumpBox(ctx, tt.args.options); (err != nil) != tt.wantErr {
+			if err := CreateJumpBox(ctx); (err != nil) != tt.wantErr {
 				t.Errorf("CreateJumpBox() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -152,6 +152,166 @@ func Test_powerOnVM(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := PowerOn(tt.args.ctx); (err != nil) != tt.wantErr {
 				t.Errorf("PowerOn() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestCreateJumpBox(t *testing.T) {
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := CreateJumpBox(tt.args.ctx); (err != nil) != tt.wantErr {
+				t.Errorf("CreateJumpBox() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestDestroy(t *testing.T) {
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := Destroy(tt.args.ctx); (err != nil) != tt.wantErr {
+				t.Errorf("Destroy() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestPowerOff(t *testing.T) {
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := PowerOff(tt.args.ctx); (err != nil) != tt.wantErr {
+				t.Errorf("PowerOff() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestPowerOn(t *testing.T) {
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := PowerOn(tt.args.ctx); (err != nil) != tt.wantErr {
+				t.Errorf("PowerOn() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSsh(t *testing.T) {
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := Ssh(tt.args.ctx); (err != nil) != tt.wantErr {
+				t.Errorf("Ssh() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_createConfigMap(t *testing.T) {
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := createConfigMap(tt.args.ctx); (err != nil) != tt.wantErr {
+				t.Errorf("createConfigMap() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_createSvc(t *testing.T) {
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := createSvc(tt.args.ctx); (err != nil) != tt.wantErr {
+				t.Errorf("createSvc() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_waitCreate(t *testing.T) {
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := waitCreate(tt.args.ctx); (err != nil) != tt.wantErr {
+				t.Errorf("waitCreate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
