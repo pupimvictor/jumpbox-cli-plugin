@@ -6,7 +6,9 @@ Create and Manage Jumpbox VMs using Tanzu VM Service
 
 ## Overview
 
-The Jumpbox plugin enables Platform Operators and Developers to easily create and access VMs in a Tanzu Namespace. The Jumpbox is a VM with a persistent volume and a persistent IP.  
+The Jumpbox plugin enables Platform Operators and Developers to easily create and access VMs in a Tanzu Namespace. 
+
+The Jumpbox is a VM with a persistent volume and a persistent IP.  
 
 ## Installation
 
