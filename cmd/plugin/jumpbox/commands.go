@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"os/exec"
+	"time"
 )
 
 type (
@@ -35,6 +36,7 @@ type (
 		SshKeyPath       string `json:"sshKeyPath"`
 		User             string `json:"user"`
 		Password         string `json:"password"`
+		WaitCreate       bool   `json:"waitCreate"`
 	}
 )
 
@@ -88,6 +90,10 @@ func createJumpBox(ctx context.Context, options *VMOptions) error {
 		} else {
 			return err
 		}
+	}
+
+	if options.WaitCreate {
+		return waitCreate(ctx, options)
 	}
 
 	return nil
@@ -246,6 +252,33 @@ func createVM(ctx context.Context, options *VMOptions) error {
 		return errors.Wrap(err, "error creating vm")
 	}
 	//fmt.Printf("vm created %v\n", res)
+	return nil
+}
+
+func waitCreate(ctx context.Context, options *VMOptions) error {
+	fmt.Print("waiting for VM to be created...")
+	for true {
+		fmt.Print(".")
+		time.Sleep(5 * time.Second)
+
+		vm, err := dynamicClient.Resource(gvrVM).Namespace(options.Namespace).Get(ctx, options.Name, v1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if status, ok := vm.Object["status"]; ok && status != nil {
+			if _, ok := status.(map[string]interface{})["vmIp"]; ok {
+				svc, err := c.CoreV1().Services(options.Namespace).Get(ctx, options.svcName, v1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				fmt.Printf("Jumpbox %s is ready\n", vm.Object["metadata"].(map[string]interface{})["name"])
+				fmt.Printf("Load balancer IP: %s\n", svc.Status.LoadBalancer.Ingress[0].IP)
+				fmt.Printf("\nAccess Jumpbox: `tanzu jumpbox ssh %s -i %s -n %s\n", vm.Object["metadata"].(map[string]interface{})["name"], options.SshKeyPath, options.Namespace)
+				break
+			}
+		}
+	}
+
 	return nil
 }
 

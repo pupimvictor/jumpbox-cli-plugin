@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"os"
+	"strings"
 )
 
 var (
@@ -95,6 +96,7 @@ func newCreateCmd(ctx context.Context) *cobra.Command {
 	createCmd.Flags().StringVarP(&vmOptions.SshPubPath, "ssh-pub", "", "$HOME/.ssh/id_rsa.pub", "Path to the ssh public key to include in VM authorized_keys")
 	createCmd.Flags().StringVarP(&vmOptions.User, "user", "u", "operator", "User to be created in VM")
 	createCmd.Flags().StringVarP(&vmOptions.Password, "password", "p", "VMware1!", "User's password for VM login")
+	createCmd.Flags().BoolVarP(&vmOptions.WaitCreate, "wait", "w", true, "Wait for VM to be created")
 
 	createCmd.MarkFlagRequired("storage-class")
 	createCmd.MarkFlagRequired("image")
@@ -158,7 +160,10 @@ func parseArgs(args []string) *VMOptions {
 	vmOptions.pvcName = vmName + "-pvc"
 	vmOptions.configName = vmName + "-cm"
 	vmOptions.svcName = vmName + "-svc"
-	fmt.Printf("vmoptions %+v\n", vmOptions)
+	if vmOptions.SshKeyPath == "" {
+		vmOptions.SshKeyPath = strings.Split(vmOptions.SshPubPath, ".")[0]
+	}
+	//fmt.Printf("vmoptions %+v\n", vmOptions)
 	return vmOptions
 
 }

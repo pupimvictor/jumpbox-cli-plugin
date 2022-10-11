@@ -39,6 +39,16 @@ tanzu jumpbox create my-jumpbox  --namespace <vsphere-namespace>
     --storage-class <storage-class>
 ```
 
+```bash
+tanzu jumpbox create my-jumpbox  --namespace vms \
+    --image ubuntu-20-1633387172196 \
+    --class best-effort-large \
+    --networkp-type nsx-t \
+    --storage-class vc01cl01-t0compute
+    
+tanzu jumpbox ssh my-jumpbox --namespace vms  
+```
+
 - vsphere-namespace: Target Namespace
 - vm-image: VM Image from Content Library. run `kubectl get virtualmachineimages` to see available images in the namespace
 - vm-class: VM Class. run `kubectl get virtualmachineclasses` to see available vm classes
