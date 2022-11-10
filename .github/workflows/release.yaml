@@ -24,11 +24,11 @@ jobs:
 
   - name: Get dependencies
     run: |
-    go get -v -t -d ./...
-    curl -o tanzu https://storage.googleapis.com/tanzu-cli/artifacts/core/latest/tanzu-core-linux_amd64 && \
+      go get -v -t -d ./...
+      curl -o tanzu https://storage.googleapis.com/tanzu-cli/artifacts/core/latest/tanzu-core-linux_amd64 && \
         mv tanzu /usr/local/bin/tanzu && \
-      chmod +x /usr/local/bin/tanzu
-    tanzu plugin repo add -b tanzu-cli-admin-plugins -n admin
+        chmod +x /usr/local/bin/tanzu
+      tanzu plugin repo add -b tanzu-cli-admin-plugins -n admin
 
   - name: init
     run: make init
