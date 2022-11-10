@@ -42,7 +42,7 @@ jobs:
       run: make lint
 
     - id: upload-cli-artifacts
-      uses: GoogleCloudPlatform/github-actions/upload-cloud-storage@master
+      uses: GoogleCloudPlatform/github-actions/upload-cloud-storage@main
       with:
         path: ./artifacts
         destination: github.com/pupimvictor/jumpbox-cli-plugin
