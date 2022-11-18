@@ -26,7 +26,24 @@ The Jumpbox is a VM with a persistent volume and a persistent IP.
 
 ### Dependencies
 
-//Content Library
+#### Content Library
+
+To create VMs the CLI needs a Content Library with the VM Service Images. 
+
+- You can find options in https://marketplace.cloud.vmware.com and create your own Content Library in your environment
+- Or, for non production environments, you can create a Subscription Content Library:
+  - In vSphere, go to Content Libraries and click Create
+  - Choose a Name, click Next
+  - Select Subscribed content library
+  - Use the URL: https://s3.us-west-2.amazonaws.com/cspmarketplacemainbuck/marketplace-product-files/lib_6d895d4e-36ca-4931-9e63-007463d6397d_2f1b3441-7dc5-4610-9043-f707ba5be2d8.json
+  - Click YES to trust the subscription host
+  - Fill in other content library settings and click Finish.
+
+#### VM Class
+
+#### SSH Key
+
+
 
 ### Create Jumpbox
 
