@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	errors "github.com/pkg/errors"
@@ -16,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 )
 
@@ -38,7 +40,12 @@ func init() {
 
 func CreateJumpBox(ctx context.Context) error {
 
-	err := createPVC(ctx)
+	err := createSSHSecrete(ctx)
+	if err != nil {
+		//todo handle
+	}
+
+	err = createPVC(ctx)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			fmt.Printf("Skip Creating PVC. %s\n", err)
@@ -123,6 +130,30 @@ func createSvc(ctx context.Context) error {
 	_, err = dynamicClient.Resource(gvrSvc).Namespace(options.Namespace).Create(ctx, dataUnstructured, v1.CreateOptions{})
 	if err != nil {
 		return errors.Wrap(err, "err creating service")
+	}
+	return nil
+}
+
+func createSSHSecrete(ctx context.Context) error {
+	priv, pub, err := MakeSSHKeyPair()
+	if err != nil {
+		return errors.Wrap(err, "err creating ssh key pair")
+	}
+
+	secret := corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      options.pvcName,
+			Namespace: options.Namespace,
+		},
+		Data: map[string][]byte{
+			"ssh-publickey":  pub,
+			"ssh-privatekey": priv,
+		},
+		Type: "kubernetes.io/ssh-auth",
+	}
+	_, err = c.CoreV1().Secrets(options.Namespace).Create(ctx, &secret, v1.CreateOptions{})
+	if err != nil {
+		return errors.Wrap(err, "err creating secret")
 	}
 	return nil
 }
@@ -282,6 +313,9 @@ func Destroy(ctx context.Context) error {
 		return errors.Wrap(err, "error deleting PVC")
 	}
 	fmt.Println("VM Persistent Volume deleted")
+	err = c.CoreV1().Secrets(options.Namespace).Delete(ctx, options.sshSecretName, v1.DeleteOptions{})
+	fmt.Println("VM SSH secret deleted")
+
 	return nil
 
 }
@@ -334,13 +368,57 @@ func Ssh(ctx context.Context) error {
 
 	ip := svc.Status.LoadBalancer.Ingress[0].IP
 
-	cmd := exec.Command("ssh", "-i", options.SshKeyPath, "-o", "StrictHostKeyChecking=no", options.User+"@"+ip)
+	keyPath, err := getSSHKeyFromSecret(ctx, err)
+	if err != nil {
+		return errors.Wrap(err, "error getting svc")
+	}
+
+	cmd := exec.Command("ssh", "-i", keyPath, "-o", "StrictHostKeyChecking=no", options.User+"@"+ip)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	err = cmd.Run()
 	if err != nil {
-		return errors.Wrap(err, "error ssh into vm")
+		return errors.Wrap(err, "error SSHing into vm")
 	}
 	return nil
+}
+
+// todo: refactor below
+func getSSHKeyFromSecret(ctx context.Context, err error) (string, error) {
+	secret, err := c.CoreV1().Secrets(options.Namespace).Get(ctx, options.sshSecretName, v1.GetOptions{})
+	if err != nil {
+		return "", errors.Wrap(err, "error getting ssh secret")
+	}
+	b64key := secret.Data["ssh-privatekey"]
+	var key []byte
+	_, err = base64.StdEncoding.Decode(b64key, key)
+	if err != nil {
+		return "", errors.Wrap(err, "error decoding private key")
+	}
+	keyPath, err := writeSSHKeyToHost(b64key, err)
+	if err != nil {
+		return "", errors.Wrap(err, "error writing key to host")
+	}
+	return keyPath, nil
+}
+
+func writeSSHKeyToHost(key []byte, err error) (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", errors.Wrap(err, "error getting user home dir")
+	}
+	keyPath := filepath.Join(homeDir, ".tanzu", "jumpbox", options.sshSecretName)
+	file, err := os.Create(keyPath)
+	if err != nil {
+		return "", errors.Wrap(err, fmt.Sprintf("error creating file at: %s", keyPath))
+	}
+	defer file.Close()
+
+	_, err = file.Write(key)
+	if err != nil {
+		return "", errors.Wrap(err, fmt.Sprintf("error writing file at: %s", keyPath))
+	}
+
+	return keyPath, nil
 }

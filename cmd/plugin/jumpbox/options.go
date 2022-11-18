@@ -26,10 +26,11 @@ type (
 		Password         string
 		WaitCreate       bool
 
-		pvcName    string
-		configName string
-		svcName    string
-		SshPubKey  string
+		pvcName       string
+		configName    string
+		svcName       string
+		SshPubKey     string
+		sshSecretName string
 	}
 )
 
@@ -37,6 +38,7 @@ func setup(args []string) {
 	vmName := args[0]
 	options.Name = vmName
 	options.pvcName = vmName + "-pvc"
+	options.sshSecretName = vmName + "-ssh"
 	options.configName = vmName + "-cm"
 	options.svcName = vmName + "-svc"
 }
