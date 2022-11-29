@@ -84,7 +84,6 @@ func newCreateCmd(ctx context.Context) *cobra.Command {
 	createCmd.Flags().StringVarP(&options.ClassName, "class", "c", "", "vm class")
 	createCmd.Flags().StringVarP(&options.NetworkType, "network-type", "", "", "Network type. `nsx-t` or `vsphere-distributed`")
 	createCmd.Flags().StringVarP(&options.NetworkName, "network-name", "", "", "Network name. required if network-type = `vsphere-distributed`")
-	createCmd.Flags().StringVarP(&options.SshPubPath, "ssh-pub", "", "$HOME/.ssh/id_rsa.pub", "Path to the ssh public key to include in VM authorized_keys")
 	createCmd.Flags().StringVarP(&options.User, "user", "u", "operator", "User to be created in VM")
 	createCmd.Flags().StringVarP(&options.Password, "password", "p", "VMware1!", "User's password for VM login")
 	createCmd.Flags().BoolVarP(&options.WaitCreate, "wait", "w", true, "Wait for VM to be created")
@@ -109,7 +108,7 @@ func newSshCmd(ctx context.Context) *cobra.Command {
 			return Ssh(ctx)
 		}}
 	sshCmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "", "vm namespace")
-	sshCmd.Flags().StringVarP(&options.SshKeyPath, "ssh-key", "i", "$HOME/.ssh/id_rsa", "Path to the ssh private key to access the vm")
+	sshCmd.Flags().StringVarP(&options.SshPrivateKey, "ssh-key", "i", "$HOME/.ssh/id_rsa", "Path to the ssh private key to access the vm")
 	sshCmd.Flags().StringVarP(&options.User, "user", "u", "operator", "user to access the vm")
 
 	sshCmd.MarkFlagRequired("namespace")

@@ -9,7 +9,9 @@ BUILD_DATE ?= $(shell date -u +"%Y-%m-%d")
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 GOHOSTOS ?= $(shell go env GOHOSTOS)
+#GOHOSTOS = darwin
 GOHOSTARCH ?= $(shell go env GOHOSTARCH)
+#GOHOSTARCH = amd64
 
 LD_FLAGS = -X 'github.com/vmware-tanzu/tanzu-framework/pkg/v1/cli.BuildDate=$(BUILD_DATE)'
 LD_FLAGS += -X 'github.com/vmware-tanzu/tanzu-framework/pkg/v1/cli.BuildSHA=$(BUILD_SHA)'
@@ -28,7 +30,7 @@ TANZU_PLUGIN_PUBLISH_PATH ?= $(ARTIFACTS_DIR)/published
 PLUGINS ?= "jumpbox"
 
 # Add supported OS-ARCHITECTURE combinations here
-ENVS ?= linux-amd64 windows-amd64 darwin-amd64
+ENVS ?= linux-amd64 windows-amd64 darwin-amd64 darwin-arm64
 
 BUILD_JOBS := $(addprefix build-,${ENVS})
 PUBLISH_JOBS := $(addprefix publish-,${ENVS})
@@ -65,6 +67,12 @@ publish-%:
 .PHONY: install-local
 install-local: ## Install the locally built plugins
 	tanzu plugin install all --local $(TANZU_PLUGIN_PUBLISH_PATH)/${GOHOSTOS}-${GOHOSTARCH}
+
+.PHONY: install-%
+install-%:
+	$(eval ARCH = $(word 2,$(subst -, ,$*)))
+	$(eval OS = $(word 1,$(subst -, ,$*)))
+	tanzu plugin install all --local $(TANZU_PLUGIN_PUBLISH_PATH)/${OS}-${ARCH}
 
 .PHONY: build-install-local
 build-install-local: build-local publish-local ## Build and Install plugin for local OS-ARCH

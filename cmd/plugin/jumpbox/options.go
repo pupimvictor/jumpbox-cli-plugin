@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
-	"crypto/md5"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/base64"
-	"encoding/hex"
+	"encoding/pem"
 	"github.com/pkg/errors"
-	"os"
+	"golang.org/x/crypto/ssh"
+	"strings"
 	"text/template"
 )
 
@@ -20,8 +23,8 @@ type (
 		ClassName        string
 		NetworkType      string
 		NetworkName      string
-		SshPubPath       string
-		SshKeyPath       string
+		SshPublicKey     string
+		SshPrivateKey    string
 		User             string
 		Password         string
 		WaitCreate       bool
@@ -29,10 +32,28 @@ type (
 		pvcName       string
 		configName    string
 		svcName       string
-		SshPubKey     string
 		sshSecretName string
 	}
 )
+
+var userdata = `
+#cloud-config
+
+ssh_authorized_keys:
+  - {{ .SshPublicKey }} 
+
+fs_setup:
+  - label: workspace
+    filesystem: 'ext4'
+    device: '/dev/sdb'
+    partition: 'auto'
+
+mounts:
+  - [ sdb, /workspace ]
+
+runcmd:
+  - sudo chmod 777 /workspace
+`
 
 func setup(args []string) {
 	vmName := args[0]
@@ -44,14 +65,12 @@ func setup(args []string) {
 }
 
 func buildUserdata() error {
-	hash := md5.Sum([]byte(options.Password))
-	options.Password = hex.EncodeToString(hash[:])
-
-	sshPubKey, err := os.ReadFile(os.ExpandEnv(options.SshPubPath))
+	sshPrivateKey, sshPubKey, err := MakeSSHKeyPair()
 	if err != nil {
-		return errors.WithMessage(err, "err reading ssh pub key")
+		return errors.WithMessage(err, "err creating ssh key pair")
 	}
-	options.SshPubKey = string(sshPubKey)
+	options.SshPublicKey = string(sshPubKey)
+	options.SshPrivateKey = string(sshPrivateKey)
 
 	t := template.Must(template.New("userdata").Parse(userdata))
 
@@ -65,47 +84,28 @@ func buildUserdata() error {
 	return nil
 }
 
-var userdata = `
-#cloud-config
-## Required syntax at the start of user-data file
-users:
-## Create the default user for the OS
-  - default
+// MakeSSHKeyPair make a pair of public and private keys for SSH access.
+// Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
+// Private Key generated is PEM encoded
+func MakeSSHKeyPair() (key []byte, pub []byte, err error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, nil, err
+	}
 
-  - name: {{ .User }}
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    groups: users, admins
-    shell: /bin/bash
-    passwd: {{ .Password }}
-    ssh_authorized_keys:
-      - {{ .SshPubKey }}
+	//encode private key as PEM
+	privateKeyStr := new(strings.Builder)
+	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
+	if err := pem.Encode(privateKeyStr, privateKeyPEM); err != nil {
+		return nil, nil, err
+	}
 
-
-## Enable DHCP on the default network interface provisioned in the VM
-network:
-  version: 2
-  ethernets:
-      ens192:
-          dhcp4: true
-
-## Setup Filesystem and Mount PV disk
-fs_setup:
-  - label: workspace
-    filesystem: 'ext4'
-    device: '/dev/sdb'
-    partition: 'auto'
-
-mounts:
- - [ sdb, /workspace ]
-
-apt_upgrade: true
-packages:
-    - traceroute
-    - unzip
-    - tree
-    - jq
-
-runcmd:
-  - chmod 774 /workspace
-  - chown -R root:admins /workspace
-`
+	// generate and write public key
+	pubKey, err := ssh.NewPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	key = []byte(privateKeyStr.String())
+	pub = ssh.MarshalAuthorizedKey(pubKey)
+	return key, pub, nil
+}

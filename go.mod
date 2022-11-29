@@ -10,7 +10,14 @@ replace (
 require (
 	github.com/aunum/log v0.0.0-20200821225356-38d2e2c8b489
 	github.com/golangci/golangci-lint v1.38.0
+	github.com/pkg/errors v0.9.1
+	github.com/spf13/cobra v1.5.0
 	github.com/vmware-tanzu/tanzu-framework v0.25.1
+	github.com/vmware-tanzu/vm-operator-api v0.1.4-0.20211029224930-6ec913d11bff
+	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
+	k8s.io/api v0.23.5
+	k8s.io/apimachinery v0.23.5
+	k8s.io/client-go v0.23.5
 )
 
 require (
@@ -30,7 +37,7 @@ require (
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
 	github.com/BurntSushi/toml v1.0.0 // indirect
-	github.com/Djarvur/go-err113 v0.0.0-20210108212216-aea10b59be24 // indirect
+	github.com/Djarvur/go-err113 v0.1.0 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect
@@ -79,7 +86,6 @@ require (
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/fatih/structs v1.1.0 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/fzipp/gocyclo v0.3.1 // indirect
@@ -181,13 +187,11 @@ require (
 	github.com/nishanths/exhaustive v0.1.0 // indirect
 	github.com/nishanths/predeclared v0.2.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
-	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.19.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/phayes/checkstyle v0.0.0-20170904204023-bfd46e6a821d // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polyfloyd/go-errorlint v0.0.0-20201127212506-19bd8db6546f // indirect
 	github.com/prometheus/client_golang v1.12.1 // indirect
@@ -208,7 +212,6 @@ require (
 	github.com/sourcegraph/go-diff v0.6.1 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
-	github.com/spf13/cobra v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.10.1 // indirect
@@ -231,14 +234,12 @@ require (
 	github.com/vmware-tanzu/carvel-kapp-controller v0.35.0 // indirect
 	github.com/vmware-tanzu/carvel-vendir v0.26.0 // indirect
 	github.com/vmware-tanzu/carvel-ytt v0.40.0 // indirect
-	github.com/vmware-tanzu/vm-operator-api v0.1.4-0.20211029224930-6ec913d11bff // indirect
 	github.com/vmware/govmomi v0.27.1 // indirect
 	github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0 // indirect
 	go.mongodb.org/mongo-driver v1.1.2 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/oauth2 v0.0.0-20220309155454-6242fa91716a // indirect
@@ -259,12 +260,9 @@ require (
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	honnef.co/go/tools v0.1.2 // indirect
-	k8s.io/api v0.23.5 // indirect
+	honnef.co/go/tools v0.2.0 // indirect
 	k8s.io/apiextensions-apiserver v0.23.5 // indirect
-	k8s.io/apimachinery v0.23.5 // indirect
 	k8s.io/apiserver v0.23.5 // indirect
-	k8s.io/client-go v0.23.5 // indirect
 	k8s.io/cluster-bootstrap v0.23.4 // indirect
 	k8s.io/component-base v0.23.5 // indirect
 	k8s.io/klog/v2 v2.40.1 // indirect

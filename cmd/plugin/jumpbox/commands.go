@@ -40,11 +40,15 @@ func init() {
 
 func CreateJumpBox(ctx context.Context) error {
 
-	err := createSSHSecrete(ctx)
+	err := createSSHSecret(ctx)
 	if err != nil {
-		//todo handle
+		if apierrors.IsAlreadyExists(err) {
+			// todo implement replace secret
+			fmt.Printf("Skip Creating SSH secret. %s\n", err)
+		} else {
+			return err
+		}
 	}
-
 	err = createPVC(ctx)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
@@ -56,15 +60,8 @@ func CreateJumpBox(ctx context.Context) error {
 	err = createConfigMap(ctx)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
+			// todo implement replace CM
 			fmt.Printf("Skip Creating Config. %s\n", err)
-		} else {
-			return err
-		}
-	}
-	err = createVM(ctx)
-	if err != nil {
-		if apierrors.IsAlreadyExists(err) {
-			fmt.Printf("Skip Creating VMs. %s\n", err)
 		} else {
 			return err
 		}
@@ -73,6 +70,14 @@ func CreateJumpBox(ctx context.Context) error {
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			fmt.Printf("Skip Creating Service. %s\n", err)
+		} else {
+			return err
+		}
+	}
+	err = createVM(ctx)
+	if err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			fmt.Printf("Skip Creating VMs. %s\n", err)
 		} else {
 			return err
 		}
@@ -131,30 +136,29 @@ func createSvc(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "err creating service")
 	}
+
+	fmt.Printf("Created VM service %s\n", options.svcName)
 	return nil
 }
 
-func createSSHSecrete(ctx context.Context) error {
-	priv, pub, err := MakeSSHKeyPair()
-	if err != nil {
-		return errors.Wrap(err, "err creating ssh key pair")
-	}
-
+func createSSHSecret(ctx context.Context) error {
 	secret := corev1.Secret{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      options.pvcName,
+			Name:      options.sshSecretName,
 			Namespace: options.Namespace,
 		},
 		Data: map[string][]byte{
-			"ssh-publickey":  pub,
-			"ssh-privatekey": priv,
+			"ssh-publickey":  []byte(options.SshPublicKey),
+			"ssh-privatekey": []byte(options.SshPrivateKey),
 		},
 		Type: "kubernetes.io/ssh-auth",
 	}
-	_, err = c.CoreV1().Secrets(options.Namespace).Create(ctx, &secret, v1.CreateOptions{})
+	_, err := c.CoreV1().Secrets(options.Namespace).Create(ctx, &secret, v1.CreateOptions{})
 	if err != nil {
 		return errors.Wrap(err, "err creating secret")
 	}
+
+	fmt.Printf("Created SSH Keys secret %s\n", options.sshSecretName)
 	return nil
 }
 
@@ -182,6 +186,8 @@ func createPVC(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "err creating pvc")
 	}
+
+	fmt.Printf("Created Persisten Volume %s\n", options.pvcName)
 	return nil
 }
 
@@ -262,7 +268,8 @@ func createVM(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "error creating vm")
 	}
-	//fmt.Printf("vm created %v\n", res)
+
+	fmt.Printf("Created Virtual Machine %v\n", options.Name)
 	return nil
 }
 
@@ -284,7 +291,7 @@ func waitCreate(ctx context.Context) error {
 				}
 				fmt.Printf("Jumpbox %s is ready\n", vm.Object["metadata"].(map[string]interface{})["name"])
 				fmt.Printf("Load balancer IP: %s\n", svc.Status.LoadBalancer.Ingress[0].IP)
-				fmt.Printf("\nAccess Jumpbox: `tanzu jumpbox ssh %s -i %s -n %s\n", vm.Object["metadata"].(map[string]interface{})["name"], options.SshKeyPath, options.Namespace)
+				fmt.Printf("\nAccess Jumpbox: `tanzu jumpbox ssh %s -n %s\n", vm.Object["metadata"].(map[string]interface{})["name"], options.Namespace)
 				break
 			}
 		}
@@ -314,6 +321,9 @@ func Destroy(ctx context.Context) error {
 	}
 	fmt.Println("VM Persistent Volume deleted")
 	err = c.CoreV1().Secrets(options.Namespace).Delete(ctx, options.sshSecretName, v1.DeleteOptions{})
+	if err != nil {
+		return errors.Wrap(err, "error deleting SSH secret")
+	}
 	fmt.Println("VM SSH secret deleted")
 
 	return nil
@@ -370,10 +380,10 @@ func Ssh(ctx context.Context) error {
 
 	keyPath, err := getSSHKeyFromSecret(ctx, err)
 	if err != nil {
-		return errors.Wrap(err, "error getting svc")
+		return errors.Wrap(err, "error getting ssh keys")
 	}
 
-	cmd := exec.Command("ssh", "-i", keyPath, "-o", "StrictHostKeyChecking=no", options.User+"@"+ip)
+	cmd := exec.Command("ssh", "-i", keyPath, options.User+"@"+ip)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -415,6 +425,10 @@ func writeSSHKeyToHost(key []byte, err error) (string, error) {
 	}
 	defer file.Close()
 
+	err = file.Chmod(600)
+	if err != nil {
+		return "", errors.Wrap(err, fmt.Sprintf("error chmoding file: %s", keyPath))
+	}
 	_, err = file.Write(key)
 	if err != nil {
 		return "", errors.Wrap(err, fmt.Sprintf("error writing file at: %s", keyPath))
