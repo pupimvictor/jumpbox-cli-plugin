@@ -26,13 +26,12 @@ type (
 		SshPublicKey     string
 		SshPrivateKey    string
 		User             string
-		Password         string
-		WaitCreate       bool
 
-		pvcName       string
-		configName    string
-		svcName       string
-		sshSecretName string
+		pvcName           string
+		configName        string
+		svcName           string
+		sshSecretName     string
+		sshPrivateKeyPath string
 	}
 )
 

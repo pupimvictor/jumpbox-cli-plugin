@@ -23,7 +23,7 @@ var options = &VMOptions{}
 var pluginDescriptor = cliv1alpha1.PluginDescriptor{
 	Name:        "jumpbox",
 	Description: "tanzu cli plugin for jumpox management (tanzu vm service)",
-	Version:     "v0.0.1",
+	Version:     "v1.0.0",
 	Group:       cliv1alpha1.ManageCmdGroup,
 }
 
@@ -84,9 +84,7 @@ func newCreateCmd(ctx context.Context) *cobra.Command {
 	createCmd.Flags().StringVarP(&options.ClassName, "class", "c", "", "vm class")
 	createCmd.Flags().StringVarP(&options.NetworkType, "network-type", "", "", "Network type. `nsx-t` or `vsphere-distributed`")
 	createCmd.Flags().StringVarP(&options.NetworkName, "network-name", "", "", "Network name. required if network-type = `vsphere-distributed`")
-	createCmd.Flags().StringVarP(&options.User, "user", "u", "operator", "User to be created in VM")
-	createCmd.Flags().StringVarP(&options.Password, "password", "p", "VMware1!", "User's password for VM login")
-	createCmd.Flags().BoolVarP(&options.WaitCreate, "wait", "w", true, "Wait for VM to be created")
+	createCmd.Flags().StringVarP(&options.User, "user", "u", "", "User to be created in VM")
 
 	createCmd.MarkFlagRequired("namespace")
 	createCmd.MarkFlagRequired("storage-class")
@@ -108,10 +106,8 @@ func newSshCmd(ctx context.Context) *cobra.Command {
 			return Ssh(ctx)
 		}}
 	sshCmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "", "vm namespace")
-	sshCmd.Flags().StringVarP(&options.SshPrivateKey, "ssh-key", "i", "$HOME/.ssh/id_rsa", "Path to the ssh private key to access the vm")
-	sshCmd.Flags().StringVarP(&options.User, "user", "u", "operator", "user to access the vm")
-
-	sshCmd.MarkFlagRequired("namespace")
+	sshCmd.Flags().StringVarP(&options.sshPrivateKeyPath, "ssh-key", "i", "", "Path to the ssh private key to access the vm")
+	sshCmd.Flags().StringVarP(&options.User, "user", "u", "", "user to access the vm")
 
 	return sshCmd
 }

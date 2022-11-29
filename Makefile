@@ -9,9 +9,7 @@ BUILD_DATE ?= $(shell date -u +"%Y-%m-%d")
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 GOHOSTOS ?= $(shell go env GOHOSTOS)
-#GOHOSTOS = darwin
 GOHOSTARCH ?= $(shell go env GOHOSTARCH)
-#GOHOSTARCH = amd64
 
 LD_FLAGS = -X 'github.com/vmware-tanzu/tanzu-framework/pkg/v1/cli.BuildDate=$(BUILD_DATE)'
 LD_FLAGS += -X 'github.com/vmware-tanzu/tanzu-framework/pkg/v1/cli.BuildSHA=$(BUILD_SHA)'

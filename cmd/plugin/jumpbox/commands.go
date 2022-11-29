@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -83,12 +84,7 @@ func CreateJumpBox(ctx context.Context) error {
 		}
 	}
 
-	if options.WaitCreate {
-		return waitCreate(ctx)
-	}
-
-	fmt.Printf("Creating VM. run `kubectl get vm %s -n %s` for progress\n", options.Name, options.Namespace)
-	return nil
+	return waitCreate(ctx)
 }
 
 func createSvc(ctx context.Context) error {
@@ -100,6 +96,10 @@ func createSvc(ctx context.Context) error {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      options.svcName,
 			Namespace: options.Namespace,
+			Labels: map[string]string{
+				"jumpbox": options.Name,
+				"vmImage": options.ImageName,
+			},
 		},
 		Spec: v1alpha1.VirtualMachineServiceSpec{
 			Type: "LoadBalancer",
@@ -221,6 +221,7 @@ func createVM(ctx context.Context) error {
 			Namespace: options.Namespace,
 			Labels: map[string]string{
 				"jumpbox": options.Name,
+				"vmImage": options.ImageName,
 			},
 		},
 		Spec: v1alpha1.VirtualMachineSpec{
@@ -376,14 +377,26 @@ func Ssh(ctx context.Context) error {
 		return errors.Wrap(err, "error getting svc")
 	}
 
-	ip := svc.Status.LoadBalancer.Ingress[0].IP
-
-	keyPath, err := getSSHKeyFromSecret(ctx, err)
-	if err != nil {
-		return errors.Wrap(err, "error getting ssh keys")
+	if options.User == "" {
+		vmImage := svc.Labels["vmImage"]
+		if strings.Contains(vmImage, "centos") {
+			options.User = "cloud-user"
+		} else {
+			options.User = "ubuntu"
+		}
 	}
 
-	cmd := exec.Command("ssh", "-i", keyPath, options.User+"@"+ip)
+	if options.sshPrivateKeyPath == "" {
+		keyPath, err := getSSHKeyFromSecret(ctx, err)
+		if err != nil {
+			return errors.Wrap(err, "error getting ssh keys")
+		}
+		options.sshPrivateKeyPath = keyPath
+	}
+
+	ip := svc.Status.LoadBalancer.Ingress[0].IP
+
+	cmd := exec.Command("ssh", "-i", options.sshPrivateKeyPath, options.User+"@"+ip)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -425,7 +438,7 @@ func writeSSHKeyToHost(key []byte, err error) (string, error) {
 	}
 	defer file.Close()
 
-	err = file.Chmod(600)
+	err = file.Chmod(0600)
 	if err != nil {
 		return "", errors.Wrap(err, fmt.Sprintf("error chmoding file: %s", keyPath))
 	}
