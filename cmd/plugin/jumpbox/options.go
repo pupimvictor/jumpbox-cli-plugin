@@ -2,14 +2,8 @@ package main
 
 import (
 	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
-	"encoding/pem"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/ssh"
-	"strings"
 	"text/template"
 )
 
@@ -32,6 +26,7 @@ type (
 		svcName           string
 		sshSecretName     string
 		sshPrivateKeyPath string
+		tanzuDir          string
 	}
 )
 
@@ -81,30 +76,4 @@ func buildUserdata() error {
 	options.UserData = base64.StdEncoding.EncodeToString(buf.Bytes())
 
 	return nil
-}
-
-// MakeSSHKeyPair make a pair of public and private keys for SSH access.
-// Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
-// Private Key generated is PEM encoded
-func MakeSSHKeyPair() (key []byte, pub []byte, err error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	//encode private key as PEM
-	privateKeyStr := new(strings.Builder)
-	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
-	if err := pem.Encode(privateKeyStr, privateKeyPEM); err != nil {
-		return nil, nil, err
-	}
-
-	// generate and write public key
-	pubKey, err := ssh.NewPublicKey(&privateKey.PublicKey)
-	if err != nil {
-		return nil, nil, err
-	}
-	key = []byte(privateKeyStr.String())
-	pub = ssh.MarshalAuthorizedKey(pubKey)
-	return key, pub, nil
 }

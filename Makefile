@@ -2,6 +2,8 @@ ROOT_DIR_RELATIVE := .
 
 include $(ROOT_DIR_RELATIVE)/common.mk
 
+ROOT_DIR := $(shell git rev-parse --show-toplevel)
+
 BUILD_VERSION ?= $(shell cat BUILD_VERSION)
 BUILD_SHA ?= $(shell git rev-parse --short HEAD)
 BUILD_DATE ?= $(shell date -u +"%Y-%m-%d")
@@ -24,11 +26,13 @@ GO_SRCS := $(call rwildcard,.,*.go)
 ARTIFACTS_DIR ?= ./artifacts
 TANZU_PLUGIN_PUBLISH_PATH ?= $(ARTIFACTS_DIR)/published
 
+OCI_REGISTRY = harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins
 # Add list of plugins separated by space
-PLUGINS ?= "jumpbox"
+PLUGINS ?= jumpbox
 
 # Add supported OS-ARCHITECTURE combinations here
-ENVS ?= linux-amd64 windows-amd64 darwin-amd64 darwin-arm64
+ENVS ?= darwin-amd64 darwin-arm64
+#  linux-amd64 windows-amd64
 
 BUILD_JOBS := $(addprefix build-,${ENVS})
 PUBLISH_JOBS := $(addprefix publish-,${ENVS})
@@ -52,6 +56,10 @@ build-%:
 
 publish-local: ## Publish the plugin to generate discovery and distribution directory for local OS_ARCH
 	tanzu builder publish --type local --plugins "$(PLUGINS)" --version $(BUILD_VERSION) --os-arch "${GOHOSTOS}-${GOHOSTARCH}" --local-output-discovery-dir "$(TANZU_PLUGIN_PUBLISH_PATH)/${GOHOSTOS}-${GOHOSTARCH}/discovery/standalone" --local-output-distribution-dir "$(TANZU_PLUGIN_PUBLISH_PATH)/${GOHOSTOS}-${GOHOSTARCH}/distribution" --input-artifact-dir $(ARTIFACTS_DIR)
+
+publish-oci: ## Publish the plugin to generate discovery and distribution directory for local OS_ARCH
+	tanzu builder publish --type oci --plugins "$(PLUGINS)" --version $(BUILD_VERSION) --os-arch "${ENVS}" --oci-discovery-image ${OCI_REGISTRY}/discovery:${BUILD_VERSION} --oci-distribution-image-repository ${OCI_REGISTRY}/distribution/ --input-artifact-dir $(ROOT_DIR)/$(ARTIFACTS_DIR)
+
 
 .PHONY: publish
 publish: $(PUBLISH_JOBS) ## Publish the plugin to generate discovery and distribution directory

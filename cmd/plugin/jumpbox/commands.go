@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	errors "github.com/pkg/errors"
@@ -17,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -35,9 +33,6 @@ var (
 		Resource: "virtualmachineservices",
 	}
 )
-
-func init() {
-}
 
 func CreateJumpBox(ctx context.Context) error {
 
@@ -292,7 +287,7 @@ func waitCreate(ctx context.Context) error {
 				}
 				fmt.Printf("Jumpbox %s is ready\n", vm.Object["metadata"].(map[string]interface{})["name"])
 				fmt.Printf("Load balancer IP: %s\n", svc.Status.LoadBalancer.Ingress[0].IP)
-				fmt.Printf("\nAccess Jumpbox: `tanzu jumpbox ssh %s -n %s\n", vm.Object["metadata"].(map[string]interface{})["name"], options.Namespace)
+				fmt.Printf("\nAccess Jumpbox: \ntanzu jumpbox ssh %s -n %s\n", vm.Object["metadata"].(map[string]interface{})["name"], options.Namespace)
 				break
 			}
 		}
@@ -405,47 +400,4 @@ func Ssh(ctx context.Context) error {
 		return errors.Wrap(err, "error SSHing into vm")
 	}
 	return nil
-}
-
-// todo: refactor below
-func getSSHKeyFromSecret(ctx context.Context, err error) (string, error) {
-	secret, err := c.CoreV1().Secrets(options.Namespace).Get(ctx, options.sshSecretName, v1.GetOptions{})
-	if err != nil {
-		return "", errors.Wrap(err, "error getting ssh secret")
-	}
-	b64key := secret.Data["ssh-privatekey"]
-	var key []byte
-	_, err = base64.StdEncoding.Decode(b64key, key)
-	if err != nil {
-		return "", errors.Wrap(err, "error decoding private key")
-	}
-	keyPath, err := writeSSHKeyToHost(b64key, err)
-	if err != nil {
-		return "", errors.Wrap(err, "error writing key to host")
-	}
-	return keyPath, nil
-}
-
-func writeSSHKeyToHost(key []byte, err error) (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", errors.Wrap(err, "error getting user home dir")
-	}
-	keyPath := filepath.Join(homeDir, ".tanzu", "jumpbox", options.sshSecretName)
-	file, err := os.Create(keyPath)
-	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("error creating file at: %s", keyPath))
-	}
-	defer file.Close()
-
-	err = file.Chmod(0600)
-	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("error chmoding file: %s", keyPath))
-	}
-	_, err = file.Write(key)
-	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("error writing file at: %s", keyPath))
-	}
-
-	return keyPath, nil
 }

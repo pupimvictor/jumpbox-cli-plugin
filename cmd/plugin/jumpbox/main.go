@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/aunum/log"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	cliv1alpha1 "github.com/vmware-tanzu/tanzu-framework/apis/cli/v1alpha1"
 	"github.com/vmware-tanzu/tanzu-framework/pkg/v1/cli/command/plugin"
@@ -11,14 +12,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"os"
+	"path/filepath"
 )
 
 var (
 	c             kubernetes.Interface
 	dynamicClient dynamic.Interface
 )
-
-var options = &VMOptions{}
 
 var pluginDescriptor = cliv1alpha1.PluginDescriptor{
 	Name:        "jumpbox",
@@ -27,9 +27,15 @@ var pluginDescriptor = cliv1alpha1.PluginDescriptor{
 	Group:       cliv1alpha1.ManageCmdGroup,
 }
 
-func init() {
-}
+var options = &VMOptions{}
 
+func init() {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		panic(errors.Wrap(err, "error getting user home dir"))
+	}
+	options.tanzuDir = filepath.Join(homeDir, ".tanzu", "jumpbox")
+}
 func main() {
 	ctx := context.Background()
 
