@@ -1,0 +1,32 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:overlay", "overlay")
+
+---
+apiVersion: cli.tanzu.vmware.com/v1alpha1
+kind: CLIPlugin
+metadata:
+  creationTimestamp: null
+  name: jumpbox
+spec:
+  artifacts:
+    #@yaml/text-templated-strings
+    (@= data.values.jumpbox.version @):
+    - arch: amd64
+      image: harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/distribution/jumpbox-darwin-amd64:v1.0.0
+      os: darwin
+      type: oci
+    - arch: arm64
+      image: harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/distribution/jumpbox-darwin-arm64:v1.0.0
+      os: darwin
+      type: oci
+#    - arch: amd64
+#      image:  harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/jumpbox-amd64:latest
+#      os: linux
+#      type: oci
+#    - arch: amd64
+#      image:  harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/jumpbox-amd64:latest
+#      os: windows
+#      type: oci
+  description: Manage Jumpbox VMs
+  optional: true
+  recommendedVersion: #@ data.values.jumpbox.version

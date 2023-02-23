@@ -1,0 +1,18 @@
+---
+apiVersion: imgpkg.carvel.dev/v1alpha1
+images:
+- annotations:
+    kbld.carvel.dev/id: harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/distribution/jumpbox-darwin-amd64:v1.0.0
+    kbld.carvel.dev/origins: |
+      - resolved:
+          tag: v1.0.0
+          url: harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/distribution/jumpbox-darwin-amd64:v1.0.0
+  image: harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/distribution/jumpbox-darwin-amd64@sha256:85f3e96abec74d6c940a5ad4d5e5ddee22555f2036bc5b84304903ff8dbf5ffe
+- annotations:
+    kbld.carvel.dev/id: harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/distribution/jumpbox-darwin-arm64:v1.0.0
+    kbld.carvel.dev/origins: |
+      - resolved:
+          tag: v1.0.0
+          url: harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/distribution/jumpbox-darwin-arm64:v1.0.0
+  image: harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/distribution/jumpbox-darwin-arm64@sha256:85f3e96abec74d6c940a5ad4d5e5ddee22555f2036bc5b84304903ff8dbf5ffe
+kind: ImagesLock
