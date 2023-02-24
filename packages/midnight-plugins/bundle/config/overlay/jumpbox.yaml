@@ -15,18 +15,18 @@ spec:
 #      image: harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/distribution/jumpbox-darwin-amd64:v1.0.0
 #      os: darwin
 #      type: oci
-    - arch: arm64
-      image: harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/distribution/jumpbox-darwin-arm64:v1.0.0
-      os: darwin
-      type: oci
+#    - arch: arm64
+#      image: harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/distribution/jumpbox-darwin-arm64:v1.0.0
+#      os: darwin
+#      type: oci
     - arch: amd64
-      image:  harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/jumpbox-amd64:latest
+      image:  harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/jumpbox-linux-amd64:latest
       os: linux
       type: oci
-    - arch: amd64
-      image:  harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/jumpbox-amd64:latest
-      os: windows
-      type: oci
+#    - arch: amd64
+#      image:  harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/jumpbox-windows-amd64:latest
+#      os: windows
+#      type: oci
   description: Manage Jumpbox VMs
   optional: true
   recommendedVersion: #@ data.values.jumpbox.version

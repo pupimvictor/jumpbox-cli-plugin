@@ -1,11 +1,11 @@
 apiVersion: kbld.k14s.io/v1alpha1
 kind: Config
 overrides:
-- image: tanzu-midnight-plugins/jumpbox-darwin-arm64:latest
-  newImage:
-- image: tanzu-midnight-plugins/jumpbox-darwin-amd64:latest
-  newImage:
-- image: tanzu-midnight-plugins/jumpbox-linux-amd64:latest
-  newImage:
-- image: tanzu-midnight-plugins/jumpbox-windows-amd64:latest
-  newImage:
+#- image: tanzu-midnight-plugins/jumpbox-darwin-arm64:latest
+#  newImage:
+#- image: tanzu-midnight-plugins/jumpbox-darwin-amd64:latest
+#  newImage: "harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/jumpbox-darwin-amd64:latest"
+#- image: tanzu-midnight-plugins/jumpbox-linux-amd64:latest
+#  newImage: "harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/jumpbox-linux-amd64:latest"
+#- image: tanzu-midnight-plugins/jumpbox-windows-amd64:latest
+#  newImage: "harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins/jumpbox-windows-amd64:latest"
