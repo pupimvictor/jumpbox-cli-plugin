@@ -43,8 +43,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	config, err := clientcmd.BuildConfigFromFlags("", "~/.kube/config")
+	// todo fix kubeconfig path
+	config, err := clientcmd.BuildConfigFromFlags("", "/home/ubuntu/.kube/config")
 	if err != nil {
 		log.Fatal(err)
 	}
