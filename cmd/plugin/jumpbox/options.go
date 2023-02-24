@@ -43,7 +43,7 @@ fs_setup:
     partition: 'auto'
 
 mounts:
-  - [ sdb, /workspace ]
+  - [ sdb, /home/ubuntu ]
 
 runcmd:
   - sudo chmod 777 /workspace

@@ -44,7 +44,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	config, err := clientcmd.BuildConfigFromFlags("", "/Users/vpupim/.kube/config")
+	config, err := clientcmd.BuildConfigFromFlags("", "~/.kube/config")
 	if err != nil {
 		log.Fatal(err)
 	}

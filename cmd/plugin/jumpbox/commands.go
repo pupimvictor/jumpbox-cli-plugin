@@ -169,7 +169,7 @@ func createPVC(ctx context.Context) error {
 			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 			Resources: corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]resource.Quantity{
-					corev1.ResourceStorage: resource.MustParse("12Gi"),
+					corev1.ResourceStorage: resource.MustParse("128Gi"),
 				},
 			},
 			StorageClassName: &options.StorageClassName,
