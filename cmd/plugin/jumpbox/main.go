@@ -44,7 +44,11 @@ func main() {
 		log.Fatal(err)
 	}
 	// todo fix kubeconfig path
-	config, err := clientcmd.BuildConfigFromFlags("", "/home/ubuntu/.kube/config")
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	config, err := clientcmd.BuildConfigFromFlags("", filepath.Join(homeDir, ".kube/config"))
 	if err != nil {
 		log.Fatal(err)
 	}
