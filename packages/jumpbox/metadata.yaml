@@ -1,0 +1,14 @@
+apiVersion: data.packaging.carvel.dev/v1alpha1
+kind: PackageMetadata
+metadata:
+  name: jumpbox.tanzu.vmware.com
+  namespace: jumpbox
+spec:
+  displayName: "jumpbox"
+  longDescription: ""
+  shortDescription: ""
+  providerName: VMware
+  maintainers:
+    - name: "vpupim"
+  categories:
+    - ""

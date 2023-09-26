@@ -1,13 +1,14 @@
 apiVersion: data.packaging.carvel.dev/v1alpha1
 kind: Package
 metadata:
-  name: midnight-plugins.tanzu.vmware.com
-  namespace: midnight-plugins
+  name: jumpbox.tanzu.vmware.com
+  namespace: jumpbox
 spec:
-  refName: midnight-plugins.tanzu.vmware.com
-  version: 1.0.0
+  refName: jumpbox.tanzu.vmware.com
+  version: v1.0.1
+  releaseNotes: "Repackagin with new tooling from the Tanzu Framework team"
   licenses:
-    - "Apache 2.0"
+    - "UNKNOWN"
   template:
     spec:
       fetch:
