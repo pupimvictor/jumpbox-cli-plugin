@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic/fake"
 	simpleFake "k8s.io/client-go/kubernetes/fake"
+	"strings"
 	"testing"
 )
 
@@ -90,7 +91,7 @@ func Test_createVM(t *testing.T) {
 				},
 			},
 		}, {
-			name: "vm-2",
+			name: "vm-already-exists",
 			args: args{
 				ctx: ctx,
 				options: VMOptions{
@@ -101,6 +102,17 @@ func Test_createVM(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		}, {
+			name: "vm-missing-sc",
+			args: args{
+				ctx: ctx,
+				options: VMOptions{
+					Name:      "jumpbox-3",
+					Namespace: "test",
+					UserData:  "test",
+				},
+			},
+			wantErr: true,
 		},
 	}
 	scheme := runtime.NewScheme()
@@ -108,8 +120,13 @@ func Test_createVM(t *testing.T) {
 	dynamicClient = fake.NewSimpleDynamicClient(scheme, &v1alpha1.VirtualMachine{})
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := createVM(tt.args.ctx); (err != nil) != tt.wantErr {
+			options = &tt.args.options
+			err := createVM(tt.args.ctx)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("createVM() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				t.Logf("Ok - err %s", err)
 			}
 		})
 	}
@@ -146,10 +163,12 @@ func TestPowerOn(t *testing.T) {
 	install.Install(scheme)
 	dynamicClient = fake.NewSimpleDynamicClient(scheme, &v1alpha1.VirtualMachine{})
 
-	createVM(ctx)
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			setup([]string{tt.args.vmName})
+			if !strings.Contains(tt.name, "not-found") {
+				createVM(ctx)
+			}
 			if err := PowerOn(tt.args.ctx); (err != nil) != tt.wantErr {
 				t.Errorf("PowerOn() error = %v, wantErr %v", err, tt.wantErr)
 			}

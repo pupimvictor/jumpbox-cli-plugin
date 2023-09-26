@@ -229,8 +229,10 @@ func createVM(ctx context.Context) error {
 			},
 			StorageClass: options.StorageClassName,
 			NetworkInterfaces: []v1alpha1.VirtualMachineNetworkInterface{{
+				NetworkName: options.NetworkName,
 				NetworkType: options.NetworkType,
-			}},
+			}
+			},
 			Volumes: []v1alpha1.VirtualMachineVolume{{
 				Name: "workspace",
 				PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{
