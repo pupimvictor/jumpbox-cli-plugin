@@ -1,105 +1,347 @@
-ROOT_DIR_RELATIVE := .
+.DEFAULT_GOAL := help
 
-include $(ROOT_DIR_RELATIVE)/common.mk
+REGISTRY_PORT := 8000
+REGISTRY_ENDPOINT := localhost:$(REGISTRY_PORT)
+PACKAGE_PREFIX := $(REGISTRY_ENDPOINT)
+REGISTRY_NAME := tanzu-integration-registry
 
-ROOT_DIR := $(shell git rev-parse --show-toplevel)
+DOCKER := DOCKER_BUILDKIT=1 docker
+MAKE := make
 
-BUILD_VERSION ?= $(shell cat BUILD_VERSION)
-BUILD_SHA ?= $(shell git rev-parse --short HEAD)
-BUILD_DATE ?= $(shell date -u +"%Y-%m-%d")
+IMG_DEFAULT_TAG := latest
+IMG_VERSION_OVERRIDE ?= $(IMG_DEFAULT_TAG)
+GOPROXY ?= "https://proxy.golang.org,direct"
+PLATFORM=local
+COMPONENTS ?= cmd/plugin/jumpbox.tanzu-jumpbox-plugin.jumpbox
 
-GOOS ?= $(shell go env GOOS)
-GOARCH ?= $(shell go env GOARCH)
-GOHOSTOS ?= $(shell go env GOHOSTOS)
-GOHOSTARCH ?= $(shell go env GOHOSTARCH)
+BUILD_TOOLING_CONTAINER_IMAGE ?= ghcr.io/vmware-tanzu/build-tooling
+PACKAGING_CONTAINER_IMAGE ?= ghcr.io/vmware-tanzu/package-tooling
+VERSION ?= v0.2.0
 
-LD_FLAGS = -X 'github.com/vmware-tanzu/tanzu-framework/pkg/v1/cli.BuildDate=$(BUILD_DATE)'
-LD_FLAGS += -X 'github.com/vmware-tanzu/tanzu-framework/pkg/v1/cli.BuildSHA=$(BUILD_SHA)'
-LD_FLAGS += -X 'github.com/vmware-tanzu/tanzu-framework/pkg/v1/cli.BuildVersion=$(BUILD_VERSION)'
+CLI_PLUGIN_VERSION ?= v1.0.0
+IMGPKG_VERSION ?= v0.11.0
 
-TOOLS_DIR := tools
-TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
-GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
+# Utility functions check for main.go in component path.
+find_main_go = $(shell find $(1) -name main.go)
+check_main_go = $(if $(call find_main_go,$(1)),Found,NotFound)
 
-GO_SRCS := $(call rwildcard,.,*.go)
+##
+## Project Initialization Targets
+##
 
-ARTIFACTS_DIR ?= ./artifacts
-TANZU_PLUGIN_PUBLISH_PATH ?= $(ARTIFACTS_DIR)/published
+# Bootstraps a project by creating a copy of the Tanzu build container Dockerfile
+# into the project's root directory (alongside Makefile).
+# This target also installs a local registry if the build is being done in a
+# non-CI environment and it makes sure that the Tanzu packaging container is up to date.
+bootstrap: install-registry check-copy-build-container install-package-container
 
-OCI_REGISTRY = harbor.h2o-2-6053.h2o.vmware.com/tanzu-midnight-plugins
-# Add list of plugins separated by space
-PLUGINS ?= jumpbox
+install-registry:
+ifneq ($(IS_CI),)
+	@echo "Running in CI mode. Skipping local registry setup."
+else
+ifeq ($(shell $(DOCKER) ps -q -f name=$(REGISTRY_NAME) 2> /dev/null),)
+	@echo "Deploying a local Docker registry for Tanzu Integrations"
+	$(DOCKER) run -d -p $(REGISTRY_PORT):5000 --restart=always --name $(REGISTRY_NAME) registry:2
+	@echo
+endif
+	@echo "Registry for Tanzu Integrations available at $(REGISTRY_ENDPOINT)"
+endif
 
-# Add supported OS-ARCHITECTURE combinations here
-ENVS ?= darwin-amd64 darwin-arm64
-#  linux-amd64 windows-amd64
+check-copy-build-container:
+ifneq ("$(wildcard Dockerfile)","")
+	$(eval COPY_BUILD_CONTAINER := $(shell bash -c 'read -p "There is already a Dockerfile in this project. Overwrite? [y/N]: " do_copy; echo $$do_copy'))
+else
+	$(eval COPY_BUILD_CONTAINER := Y)
+endif
+	@$(MAKE) -s COPY_BUILD_CONTAINER=$(COPY_BUILD_CONTAINER) copy-build-container
 
-BUILD_JOBS := $(addprefix build-,${ENVS})
-PUBLISH_JOBS := $(addprefix publish-,${ENVS})
+copy-build-container:
+ifneq ($(filter y Y, $(COPY_BUILD_CONTAINER)),)
+	@$(DOCKER) run --name tanzu-build-tooling $(BUILD_TOOLING_CONTAINER_IMAGE):$(VERSION)
+	@$(DOCKER) cp tanzu-build-tooling:/Dockerfile ./Dockerfile
+	@$(DOCKER) cp tanzu-build-tooling:/.golangci.yaml ./.golangci.yaml
+	@echo Added Dockerfile for containerize build to $(PWD)
+	@$(DOCKER) rm tanzu-build-tooling 1> /dev/null
+endif
 
-go.mod go.sum: $(GO_SRCS)
-	go mod download
-	go mod tidy
+install-package-container:
+	@$(DOCKER) pull $(PACKAGING_CONTAINER_IMAGE):$(VERSION)
 
-.PHONY: build-local
-build-local: ## Build the plugin
-	tanzu builder cli compile --version $(BUILD_VERSION) --ldflags "$(LD_FLAGS)" --path ./cmd/plugin --target local --artifacts artifacts/${GOHOSTOS}/${GOHOSTARCH}/cli
+.PHONY: bootstrap install-registry check-copy-build-container copy-build-container install-package-container
 
-.PHONY: build
-build: $(BUILD_JOBS) $(PUBLISH_JOBS) ## Build the plugin
+
+.PHONY: init
+# Fetch the Dockerfile and pull image needed to build packages
+init:
+	$(DOCKER) run --rm -v ${PWD}:/workspace --entrypoint /bin/sh $(BUILD_TOOLING_CONTAINER_IMAGE):$(VERSION) -c "cp Dockerfile /workspace && cp .golangci.yaml /workspace"
+	$(DOCKER) pull $(PACKAGING_CONTAINER_IMAGE):$(VERSION)
+
+##
+## Other Targets
+##
+
+.PHONY: docker-build-all
+# Run linter, tests and build images
+docker-build-all: $(COMPONENTS)
+
+.PHONY: docker-publish-all
+# Push images of all components
+docker-publish-all: PUBLISH_IMAGES:=true
+docker-publish-all: $(COMPONENTS)
+
+.PHONY: build-all cli-plugin-build
+# Run linter, tests and build binaries
+build-all: BUILD_BIN:=true
+build-all: $(COMPONENTS)
+
+.PHONY: package-all
+# Generate package bundles and push them to a registry
+package-all: package-bundle-generate-all package-bundle-push-all
+
+.PHONY: $(COMPONENTS)
+$(COMPONENTS):
+	$(eval COMPONENT_PATH = $(word 1,$(subst ., ,$@)))
+	$(eval IMAGE_NAME = $(word 2,$(subst ., ,$@)))
+	$(eval PACKAGE_PATH = $(word 3,$(subst ., ,$@)))
+	$(eval IMAGE = $(IMAGE_NAME):$(IMG_VERSION_OVERRIDE))
+	$(eval DEFAULT_IMAGE = $(IMAGE_NAME):$(IMG_DEFAULT_TAG))
+	$(eval IMAGE = $(shell if [ ! -z "$(OCI_REGISTRY)" ]; then echo $(OCI_REGISTRY)/$(IMAGE_NAME):$(IMG_VERSION_OVERRIDE); else echo $(IMAGE); fi))
+	$(eval COMPONENT = $(shell if [ -z "$(COMPONENT_PATH)" ]; then echo "."; else echo $(COMPONENT_PATH); fi))
+	@if [ "$(PUBLISH_IMAGES)" = "true" ]; then \
+		if [ "$(call check_main_go,$(COMPONENT))" = "Found" ]; then \
+			$(MAKE) validate-component IMAGE_NAME=$(IMAGE_NAME) PACKAGE_PATH=$(PACKAGE_PATH) || exit 1; \
+			$(MAKE) publish-$@ IMAGE=$(IMAGE) DEFAULT_IMAGE=$(DEFAULT_IMAGE) PACKAGE_PATH=$(PACKAGE_PATH) BUILD_BIN=$(BUILD_BIN); \
+		fi \
+	else \
+		$(MAKE) build-$@ COMPONENT=$(COMPONENT) IMAGE_NAME=$(IMAGE_NAME) IMAGE=$(IMAGE) PACKAGE_PATH=$(PACKAGE_PATH) BUILD_BIN=$(BUILD_BIN); \
+	fi
+
+.PHONY: validate-component
+validate-component:
+ifeq ($(strip $(IMAGE_NAME)),)
+	$(error Image name of the component is not set in COMPONENTS variable, check https://github.com/vmware-tanzu/build-tooling-for-integrations/blob/main/docs/build-tooling-getting-started.md#steps-to-use-the-build-tooling for more help)
+else ifeq ($(strip $(PACKAGE_PATH)),)
+	$(error Path to the package of the component is not set in COMPONENTS variable, check https://github.com/vmware-tanzu/build-tooling-for-integrations/blob/main/docs/build-tooling-getting-started.md#steps-to-use-the-build-tooling for more help)
+endif
 
 .PHONY: build-%
 build-%:
-	$(eval ARCH = $(word 2,$(subst -, ,$*)))
-	$(eval OS = $(word 1,$(subst -, ,$*)))
-	tanzu builder cli compile --version $(BUILD_VERSION) --ldflags "$(LD_FLAGS)" --path ./cmd/plugin --artifacts artifacts/${OS}/${ARCH}/cli --target ${OS}_${ARCH}
-
-publish-local: ## Publish the plugin to generate discovery and distribution directory for local OS_ARCH
-	tanzu builder publish --type local --plugins "$(PLUGINS)" --version $(BUILD_VERSION) --os-arch "${GOHOSTOS}-${GOHOSTARCH}" --local-output-discovery-dir "$(TANZU_PLUGIN_PUBLISH_PATH)/${GOHOSTOS}-${GOHOSTARCH}/discovery/standalone" --local-output-distribution-dir "$(TANZU_PLUGIN_PUBLISH_PATH)/${GOHOSTOS}-${GOHOSTARCH}/distribution" --input-artifact-dir $(ARTIFACTS_DIR)
-
-publish-oci: ## Publish the plugin to generate discovery and distribution directory for local OS_ARCH
-	tanzu builder publish --type oci --plugins "$(PLUGINS)" --version $(BUILD_VERSION) --os-arch "${ENVS}" --oci-discovery-image ${OCI_REGISTRY}/discovery:${BUILD_VERSION} --oci-distribution-image-repository ${OCI_REGISTRY}/distribution/ --input-artifact-dir $(ROOT_DIR)/$(ARTIFACTS_DIR)
-
-
-.PHONY: publish
-publish: $(PUBLISH_JOBS) ## Publish the plugin to generate discovery and distribution directory
+	$(MAKE) COMPONENT=$(COMPONENT) lint
+	$(MAKE) COMPONENT=$(COMPONENT) test
+	@if [ "$(call check_main_go,$(COMPONENT))" = "Found" ]; then \
+		if [ "$(BUILD_BIN)" = "true" ]; then \
+			$(MAKE) COMPONENT=$(COMPONENT) binary-build; \
+		else \
+			$(MAKE) validate-component IMAGE_NAME=$(IMAGE_NAME) PACKAGE_PATH=$(PACKAGE_PATH) || exit 1; \
+			$(MAKE) docker-build IMAGE=$(IMAGE) COMPONENT=$(COMPONENT); \
+		fi \
+	fi
 
 .PHONY: publish-%
 publish-%:
-	$(eval ARCH = $(word 2,$(subst -, ,$*)))
-	$(eval OS = $(word 1,$(subst -, ,$*)))
-	tanzu builder publish --type local --plugins "$(PLUGINS)" --version $(BUILD_VERSION) --os-arch "${OS}-${ARCH}" --local-output-discovery-dir "$(TANZU_PLUGIN_PUBLISH_PATH)/${OS}-${ARCH}/discovery/standalone" --local-output-distribution-dir "$(TANZU_PLUGIN_PUBLISH_PATH)/${OS}-${ARCH}/distribution" --input-artifact-dir $(ARTIFACTS_DIR)
-
-.PHONY: install-local
-install-local: ## Install the locally built plugins
-	tanzu plugin install all --local $(TANZU_PLUGIN_PUBLISH_PATH)/${GOHOSTOS}-${GOHOSTARCH}
-
-.PHONY: install-%
-install-%:
-	$(eval ARCH = $(word 2,$(subst -, ,$*)))
-	$(eval OS = $(word 1,$(subst -, ,$*)))
-	tanzu plugin install all --local $(TANZU_PLUGIN_PUBLISH_PATH)/${OS}-${ARCH}
-
-.PHONY: build-install-local
-build-install-local: build-local publish-local ## Build and Install plugin for local OS-ARCH
-	tanzu plugin install all --local $(TANZU_PLUGIN_PUBLISH_PATH)/${GOHOSTOS}-${GOHOSTARCH}
-
-.PHONY: release
-release: $(BUILD_JOBS) $(PUBLISH_JOBS) # Generates release directory structure for all plugins under `./artifacts/published` (default)
+	$(MAKE) IMAGE=$(IMAGE) docker-publish
+	$(MAKE) KBLD_CONFIG_FILE_PATH=packages/$(PACKAGE_PATH)/kbld-config.yaml DEFAULT_IMAGE=$(DEFAULT_IMAGE) IMAGE=$(IMAGE) kbld-image-replace
 
 .PHONY: lint
-lint: $(GOLANGCI_LINT) ## Lint the plugin
-	$(GOLANGCI_LINT) run -v
+# Run linting
+lint:
+ifneq ($(strip $(COMPONENT)),.)
+	cp .golangci.yaml $(COMPONENT)
+	$(DOCKER) build . -f Dockerfile --target lint --build-arg COMPONENT=$(COMPONENT) --build-arg GOPROXY_ARG=$(GOPROXY)
+	rm -rf $(COMPONENT)/.golangci.yaml
+else
+	$(DOCKER) build . -f Dockerfile --target lint --build-arg COMPONENT=$(COMPONENT) --build-arg GOPROXY_ARG=$(GOPROXY)
+endif
 
-.PHONY: init
-init:go.mod go.sum  ## Initialise the plugin
+.PHONY: fmt
+# Run go fmt against code
+fmt:
+	$(DOCKER) build . -f Dockerfile --target fmt --build-arg COMPONENT=$(COMPONENT) --build-arg GOPROXY_ARG=$(GOPROXY)
+
+.PHONY: vet
+# Perform static analysis of code
+vet:
+	$(DOCKER) build . -f Dockerfile --target vet --build-arg COMPONENT=$(COMPONENT) --build-arg GOPROXY_ARG=$(GOPROXY)
 
 .PHONY: test
-test: $(GO_SRCS) go.sum
-	go test ./...
+# Run tests
+test: fmt vet
+	$(DOCKER) build . -f Dockerfile --target test --build-arg COMPONENT=$(COMPONENT) --build-arg GOPROXY_ARG=$(GOPROXY)
+	@$(DOCKER) build . -f Dockerfile --target unit-test-coverage --build-arg COMPONENT=$(COMPONENT) --build-arg GOPROXY_ARG=$(GOPROXY) --output build/$(COMPONENT)/coverage
 
-$(TOOLS_BIN_DIR):
-	-mkdir -p $@
+.PHONY: binary-build
+# Build the binary
+binary-build:
+	$(DOCKER) build . -f Dockerfile --build-arg LD_FLAGS="$(LD_FLAGS)" --target bin --output build/$(COMPONENT)/bin --platform ${PLATFORM} --build-arg COMPONENT=$(COMPONENT) --build-arg GOPROXY_ARG=$(GOPROXY)
 
-$(GOLANGCI_LINT): $(TOOLS_BIN_DIR)
-	go build -tags=tools -o $@ github.com/golangci/golangci-lint/cmd/golangci-lint
+.PHONY: docker-build
+# Build docker image
+docker-build:
+	$(DOCKER) build . -t $(IMAGE) -f Dockerfile --target image --platform linux/amd64 --build-arg LD_FLAGS="$(LD_FLAGS)" --build-arg COMPONENT=$(COMPONENT) --build-arg GOPROXY_ARG=$(GOPROXY)
+
+.PHONY: docker-publish
+# Publish docker image
+docker-publish:
+	$(DOCKER) push $(IMAGE)
+
+# Tanzu CLI Plugin Builder is used to compile and publish Tanzu CLI plugins.
+# https://github.com/vmware-tanzu/tanzu-cli/tree/main/cmd/plugin/builder
+.PHONY: cli-plugin-builder-install
+plugin-builder-install:
+	docker build . -f Dockerfile --target cli-plugin-builder-install
+
+.PHONY: cli-plugin-build
+CLI_PLUGIN_TARGETS := $(addprefix cli-plugin-build-, $(shell if [ -z "$(CLI_PLUGINS)" ]; then printf "$(shell [ -d "cmd/plugin" ] && cd cmd/plugin && printf "%s" */ | sed 's/\// /g' && cd ../..)"; else printf "$(CLI_PLUGINS)"; fi))
+cli-plugin-build: install-registry cli-plugin-builder-install
+	$(MAKE) $(CLI_PLUGIN_TARGETS)
+
+.PHONY: cli-plugin-build-%
+cli-plugin-build-%:
+	$(MAKE) COMPONENT=cmd/plugin/$* lint
+	$(MAKE) COMPONENT=cmd/plugin/$* test
+	$(DOCKER) build --network=host . -f Dockerfile \
+	--target cli-plugin-build \
+	--output build \
+	--build-arg IMGPKG_VERSION=$(IMGPKG_VERSION) \
+	--build-arg CLI_PLUGIN_VERSION=$(CLI_PLUGIN_VERSION) \
+	--build-arg OCI_REGISTRY=$(REGISTRY_ENDPOINT) \
+	--build-arg CLI_PLUGIN=$* \
+	--build-arg COMPONENT=cmd/plugin/$* \
+	--build-arg CLI_PLUGIN_GO_FLAGS=$(CLI_PLUGIN_GO_FLAGS)
+
+.PHONY: cli-plugin-publish
+cli-plugin-publish: cli-plugin-builder-install
+	$(DOCKER) build . -f Dockerfile \
+	--target cli-plugin-publish \
+	--build-arg IMGPKG_VERSION=$(IMGPKG_VERSION) \
+	--build-arg REPOSITORY=$(OCI_REGISTRY) \
+	--build-arg IMGPKG_USERNAME=$(REGISTRY_USERNAME) \
+	--build-arg IMGPKG_PASSWORD=$(REGISTRY_PASSWORD) \
+	--build-arg PUBLISHER=$(PUBLISHER) \
+	--build-arg VENDOR=$(VENDOR) \
+	--build-arg COMPONENT=cmd/plugin/*
+
+.PHONY: kbld-image-replace
+# Add newImage in kbld-config.yaml
+kbld-image-replace:
+	@$(DOCKER) run \
+	  -e OPERATIONS=kbld_replace \
+	  -e KBLD_CONFIG_FILE_PATH=$(KBLD_CONFIG_FILE_PATH) \
+	  -e DEFAULT_IMAGE=$(DEFAULT_IMAGE) \
+	  -e NEW_IMAGE=$(IMAGE) \
+	  -e SRC_PATH=$(SRC_PATH) \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  -v $(PWD):/workspace \
+		$(PACKAGING_CONTAINER_IMAGE):$(VERSION)
+
+.PHONY: package-bundle-generate
+# Generate package bundle for a particular package
+package-bundle-generate:
+	@$(DOCKER) run \
+	  -e OPERATIONS=package_bundle_generate \
+	  -e PACKAGE_NAME=$(PACKAGE_NAME) \
+	  -e THICK=true \
+	  -e OCI_REGISTRY=$(OCI_REGISTRY) \
+	  -e PACKAGE_VERSION=$(PACKAGE_VERSION) \
+	  -e PACKAGE_SUB_VERSION=$(PACKAGE_SUB_VERSION) \
+	  -e SRC_PATH=$(SRC_PATH) \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  -v $(PWD):/workspace \
+		$(PACKAGING_CONTAINER_IMAGE):$(VERSION)
+
+.PHONY: package-bundle-generate-all
+# Generate package bundle for all packages
+package-bundle-generate-all:
+	@$(DOCKER) run \
+	  -e OPERATIONS=package_bundle_all_generate \
+	  -e PACKAGE_REPOSITORY=$(PACKAGE_REPOSITORY) \
+	  -e THICK=true \
+	  -e OCI_REGISTRY=$(OCI_REGISTRY) \
+	  -e PACKAGE_VERSION=$(PACKAGE_VERSION) \
+	  -e PACKAGE_SUB_VERSION=$(PACKAGE_SUB_VERSION) \
+	  -e SRC_PATH=$(SRC_PATH) \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  -v $(PWD):/workspace \
+		$(PACKAGING_CONTAINER_IMAGE):$(VERSION)
+
+.PHONY: package-bundle-push
+# Push a particular package bundle
+package-bundle-push:
+	@$(DOCKER) run \
+	  -e OPERATIONS=package_bundle_push \
+	  -e PACKAGE_NAME=$(PACKAGE_NAME) \
+	  -e OCI_REGISTRY=$(OCI_REGISTRY) \
+	  -e PACKAGE_VERSION=$(PACKAGE_VERSION) \
+	  -e PACKAGE_SUB_VERSION=$(PACKAGE_SUB_VERSION) \
+	  -e REGISTRY_USERNAME=$(REGISTRY_USERNAME) \
+	  -e REGISTRY_PASSWORD=$(REGISTRY_PASSWORD) \
+	  -e REGISTRY_SERVER=$(REGISTRY_SERVER) \
+	  -e SRC_PATH=$(SRC_PATH) \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  -v $(PWD):/workspace \
+		$(PACKAGING_CONTAINER_IMAGE):$(VERSION)
+
+.PHONY: package-bundle-push-all
+# Push all package bundles
+package-bundle-push-all:
+	@$(DOCKER) run \
+	  -e OPERATIONS=package_bundle_all_push \
+	  -e PACKAGE_REPOSITORY=$(PACKAGE_REPOSITORY) \
+	  -e OCI_REGISTRY=$(OCI_REGISTRY) \
+	  -e PACKAGE_VERSION=$(PACKAGE_VERSION) \
+	  -e PACKAGE_SUB_VERSION=$(PACKAGE_SUB_VERSION) \
+	  -e REGISTRY_USERNAME=$(REGISTRY_USERNAME) \
+	  -e REGISTRY_PASSWORD=$(REGISTRY_PASSWORD) \
+	  -e REGISTRY_SERVER=$(REGISTRY_SERVER) \
+	  -e SRC_PATH=$(SRC_PATH) \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  -v $(PWD):/workspace \
+		$(PACKAGING_CONTAINER_IMAGE):$(VERSION)
+
+.PHONY: repo-bundle-generate
+# Generate repo bundle
+repo-bundle-generate:
+	@$(DOCKER) run \
+	  -e OPERATIONS=repo_bundle_generate \
+	  -e PACKAGE_REPOSITORY=$(PACKAGE_REPOSITORY) \
+	  -e THICK=true \
+	  -e OCI_REGISTRY=$(OCI_REGISTRY) \
+	  -e REPO_BUNDLE_VERSION=$(REPO_BUNDLE_VERSION) \
+	  -e REPO_BUNDLE_SUB_VERSION=$(REPO_BUNDLE_SUB_VERSION) \
+	  -e PACKAGE_VALUES_FILE=$(PACKAGE_VALUES_FILE) \
+	  -e SRC_PATH=$(SRC_PATH) \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  -v $(PWD):/workspace \
+		$(PACKAGING_CONTAINER_IMAGE):$(VERSION)
+
+.PHONY: repo-bundle-push
+# Push repo bundle
+repo-bundle-push:
+	@$(DOCKER) run \
+	  -e OPERATIONS=repo_bundle_push \
+	  -e PACKAGE_REPOSITORY=$(PACKAGE_REPOSITORY) \
+	  -e OCI_REGISTRY=$(OCI_REGISTRY) \
+	  -e REPO_BUNDLE_VERSION=$(REPO_BUNDLE_VERSION) \
+	  -e REPO_BUNDLE_SUB_VERSION=$(REPO_BUNDLE_SUB_VERSION) \
+	  -e REGISTRY_USERNAME=$(REGISTRY_USERNAME) \
+	  -e REGISTRY_PASSWORD=$(REGISTRY_PASSWORD) \
+	  -e REGISTRY_SERVER=$(REGISTRY_SERVER) \
+	  -e SRC_PATH=$(SRC_PATH) \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  -v $(PWD):/workspace \
+		$(PACKAGING_CONTAINER_IMAGE):$(VERSION)
+
+.PHONY: package-vendir-sync
+# Performs vendir sync on each package
+package-vendir-sync:
+	@$(DOCKER) run \
+	  -e OPERATIONS=vendir_sync \
+	  -e SRC_PATH=$(SRC_PATH) \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  -v $(PWD):/workspace \
+		$(PACKAGING_CONTAINER_IMAGE):$(VERSION)
+
+.PHONY: help
+# Show help
+help:
+	@cat $(MAKEFILE_LIST) | $(DOCKER) run --rm -i xanders/make-help
