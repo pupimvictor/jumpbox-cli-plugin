@@ -143,8 +143,8 @@ func createSSHSecret(ctx context.Context) error {
 			Namespace: options.Namespace,
 		},
 		Data: map[string][]byte{
-			"ssh-publickey":  []byte(options.SshPublicKey),
-			"ssh-privatekey": []byte(options.SshPrivateKey),
+			"ssh-publickey":  []byte(options.SSHPublicKey),
+			"ssh-privatekey": []byte(options.SSHPrivateKey),
 		},
 		Type: "kubernetes.io/ssh-auth",
 	}
@@ -231,7 +231,7 @@ func createVM(ctx context.Context) error {
 			NetworkInterfaces: []v1alpha1.VirtualMachineNetworkInterface{{
 				NetworkName: options.NetworkName,
 				NetworkType: options.NetworkType,
-			}
+			},
 			},
 			Volumes: []v1alpha1.VirtualMachineVolume{{
 				Name: "workspace",
@@ -368,7 +368,7 @@ func PowerOff(ctx context.Context) error {
 	return nil
 }
 
-func Ssh(ctx context.Context) error {
+func SSH(ctx context.Context) error {
 	svc, err := c.CoreV1().Services(options.Namespace).Get(ctx, options.svcName, v1.GetOptions{})
 	if err != nil {
 		return errors.Wrap(err, "error getting svc")

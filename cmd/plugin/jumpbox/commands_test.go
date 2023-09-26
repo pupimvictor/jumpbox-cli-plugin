@@ -22,7 +22,11 @@ func Test_createJumpBox(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name:    "test",
+			args:    args{},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -167,7 +171,10 @@ func TestPowerOn(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			setup([]string{tt.args.vmName})
 			if !strings.Contains(tt.name, "not-found") {
-				createVM(ctx)
+				err := createVM(ctx)
+				if err != nil {
+					t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
+				}
 			}
 			if err := PowerOn(tt.args.ctx); (err != nil) != tt.wantErr {
 				t.Errorf("PowerOn() error = %v, wantErr %v", err, tt.wantErr)
@@ -185,7 +192,11 @@ func TestCreateJumpBox(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name:    "test",
+			args:    args{},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -206,6 +217,11 @@ func TestDestroy(t *testing.T) {
 		wantErr bool
 	}{
 		// TODO: Add test cases.
+		{
+			name:    "test",
+			args:    args{},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -225,7 +241,11 @@ func TestPowerOff(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name:    "test",
+			args:    args{},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -246,11 +266,16 @@ func TestSsh(t *testing.T) {
 		wantErr bool
 	}{
 		// TODO: Add test cases.
+		{
+			name:    "teste",
+			args:    args{},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := Ssh(tt.args.ctx); (err != nil) != tt.wantErr {
-				t.Errorf("Ssh() error = %v, wantErr %v", err, tt.wantErr)
+			if err := SSH(tt.args.ctx); (err != nil) != tt.wantErr {
+				t.Errorf("SSH() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -266,6 +291,11 @@ func Test_createConfigMap(t *testing.T) {
 		wantErr bool
 	}{
 		// TODO: Add test cases.
+		{
+			name:    "teste",
+			args:    args{},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -286,6 +316,11 @@ func Test_createSvc(t *testing.T) {
 		wantErr bool
 	}{
 		// TODO: Add test cases.
+		{
+			name:    "",
+			args:    args{},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -305,6 +340,11 @@ func Test_waitCreate(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
+		{
+			name:    "",
+			args:    args{},
+			wantErr: false,
+		},
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {

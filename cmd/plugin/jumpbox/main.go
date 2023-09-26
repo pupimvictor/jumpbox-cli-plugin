@@ -62,7 +62,7 @@ func main() {
 
 	p.AddCommands(
 		newCreateCmd(ctx),
-		newSshCmd(ctx),
+		newSSHCmd(ctx),
 		newPowerOnCmd(ctx),
 		newPowerOffCmd(ctx),
 		newDestroyCmd(ctx),
@@ -92,16 +92,16 @@ func newCreateCmd(ctx context.Context) *cobra.Command {
 	createCmd.Flags().StringVarP(&options.NetworkName, "network-name", "", "", "Network name. required if network-type = `vsphere-distributed`")
 	createCmd.Flags().StringVarP(&options.User, "user", "u", "", "User to be created in VM")
 
-	createCmd.MarkFlagRequired("namespace")
-	createCmd.MarkFlagRequired("storage-class")
-	createCmd.MarkFlagRequired("image")
-	createCmd.MarkFlagRequired("class")
-	createCmd.MarkFlagRequired("network-type")
+	_ = createCmd.MarkFlagRequired("namespace")
+	_ = createCmd.MarkFlagRequired("storage-class")
+	_ = createCmd.MarkFlagRequired("image")
+	_ = createCmd.MarkFlagRequired("class")
+	_ = createCmd.MarkFlagRequired("network-type")
 
 	return createCmd
 }
 
-func newSshCmd(ctx context.Context) *cobra.Command {
+func newSSHCmd(ctx context.Context) *cobra.Command {
 	sshCmd := &cobra.Command{
 		Use:   "ssh",
 		Short: "ssh Jumpbox",
@@ -109,7 +109,7 @@ func newSshCmd(ctx context.Context) *cobra.Command {
 			setup(args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return Ssh(ctx)
+			return SSH(ctx)
 		}}
 	sshCmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "", "vm namespace")
 	sshCmd.Flags().StringVarP(&options.sshPrivateKeyPath, "ssh-key", "i", "", "Path to the ssh private key to access the vm")
@@ -130,7 +130,7 @@ func newPowerOnCmd(ctx context.Context) *cobra.Command {
 			return PowerOn(ctx)
 		}}
 	powerOnCmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "", "vm namespace")
-	powerOnCmd.MarkFlagRequired("namespace")
+	_ = powerOnCmd.MarkFlagRequired("namespace")
 
 	return powerOnCmd
 }
@@ -147,7 +147,7 @@ func newPowerOffCmd(ctx context.Context) *cobra.Command {
 			return PowerOff(ctx)
 		}}
 	powerOffCmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "", "vm namespace")
-	powerOffCmd.MarkFlagRequired("namespace")
+	_ = powerOffCmd.MarkFlagRequired("namespace")
 
 	return powerOffCmd
 }
@@ -164,7 +164,7 @@ func newDestroyCmd(ctx context.Context) *cobra.Command {
 			return Destroy(ctx)
 		}}
 	destroyCmd.Flags().StringVarP(&options.Namespace, "namespace", "n", "", "vm namespace")
-	destroyCmd.MarkFlagRequired("namespace")
+	_ = destroyCmd.MarkFlagRequired("namespace")
 
 	return destroyCmd
 }

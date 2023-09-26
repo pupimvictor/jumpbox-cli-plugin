@@ -17,8 +17,8 @@ type (
 		ClassName        string
 		NetworkType      string
 		NetworkName      string
-		SshPublicKey     string
-		SshPrivateKey    string
+		SSHPublicKey     string
+		SSHPrivateKey    string
 		User             string
 
 		pvcName           string
@@ -36,7 +36,7 @@ repo_update: true
 repo_upgrade: all
 
 ssh_authorized_keys:
-  - {{ .SshPublicKey }} 
+  - {{ .SSHPublicKey }} 
 
 users:
   - default
@@ -45,7 +45,7 @@ users:
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     ssh-authorized-keys:
-			- {{ .SshPublicKey }} 
+			- {{ .SSHPublicKey }} 
 
 packages:
 	- httpd
@@ -214,8 +214,8 @@ func buildUserdata() error {
 	if err != nil {
 		return errors.WithMessage(err, "err creating ssh key pair")
 	}
-	options.SshPublicKey = string(sshPubKey)
-	options.SshPrivateKey = string(sshPrivateKey)
+	options.SSHPublicKey = string(sshPubKey)
+	options.SSHPrivateKey = string(sshPrivateKey)
 
 	t := template.Must(template.New("userdata").Parse(userdata))
 

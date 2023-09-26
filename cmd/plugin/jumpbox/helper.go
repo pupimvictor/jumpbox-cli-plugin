@@ -25,7 +25,7 @@ func MakeSSHKeyPair() (key []byte, pub []byte, err error) {
 		return nil, nil, err
 	}
 
-	//encode private key as PEM
+	// encode private key as PEM
 	privateKeyStr := new(strings.Builder)
 	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
 	if err := pem.Encode(privateKeyStr, privateKeyPEM); err != nil {
@@ -65,7 +65,7 @@ func getSSHKeyFromSecret(ctx context.Context, err error) (string, error) {
 
 func writeSSHKeyToHost(key []byte, err error) (string, error) {
 
-	mode := int(0760)
+	mode := 0760
 	err = os.MkdirAll(options.tanzuDir, os.FileMode(mode))
 	if err != nil {
 		return "", errors.Wrap(err, "err creating jumpbox dir")
@@ -76,9 +76,11 @@ func writeSSHKeyToHost(key []byte, err error) (string, error) {
 	if err != nil {
 		return "", errors.Wrap(err, "error creating ssh key file")
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
 
-	mode = int(0600)
+	mode = 0600
 	err = file.Chmod(os.FileMode(mode))
 	if err != nil {
 		return "", errors.Wrap(err, fmt.Sprintf("error chmoding file: %s", keyPath))
